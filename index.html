@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ระบบขอรับบริการ</title>
+
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- AdminLTE (มี Bootstrap 4 อยู่ในตัว) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
+  <!-- CSS ของระบบ -->
+  <link rel="stylesheet" href="css/app.css">
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button" aria-label="ซ่อน/แสดงเมนู"><i class="fas fa-bars"></i></a>
+      </li>
+    </ul>
+    <div class="app-brand-text">
+      <span class="js-app-name app-title"></span>
+      <span class="js-org-name app-subtitle"></span>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="main-sidebar sidebar-light-primary elevation-2">
+    <a href="index.html" class="brand-link">
+      <i class="fas fa-tools brand-icon ml-3 mr-2"></i>
+      <span class="brand-text">Service Desk</span>
+    </a>
+
+    <div class="sidebar">
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+
+          <li class="nav-header">สำหรับผู้พัฒนา</li>
+          <li class="nav-item">
+            <a href="index.html?MM=99" class="nav-link" data-mm="99">
+              <i class="nav-icon fas fa-plug text-secondary"></i>
+              <p>ทดสอบระบบ</p>
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content-wrapper">
+    <div class="content-header">
+      <div class="container-fluid">
+        <h1 id="page-title" class="page-title"></h1>
+      </div>
+    </div>
+    <div class="content">
+      <div class="container-fluid">
+        <div id="page-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="main-footer">
+    TISTR Copyright &copy; <span class="js-year"></span>
+  </footer>
+</div>
+
+<!-- REQUIRED SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+
+<!-- ระบบ (ลำดับสำคัญ: config > core > app) -->
+<script src="js/config.js"></script>
+<script src="js/core/ApiClient.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

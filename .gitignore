@@ -1,0 +1,7 @@
+# ไฟล์ส่วนตัว/เครื่องมือ ห้ามขึ้น GitHub
+.claude/
+.vscode/
+*.local.*
+.env
+*.rar
+*.zip

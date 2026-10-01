@@ -1,0 +1,34 @@
+/* app.css : ปรับจาก AdminLTE เท่าที่จำเป็น */
+:root {
+  --app-ink: #1d2a3a;
+  --app-muted: #5d6b7c;
+  --app-line: #dfe5ec;
+  --app-primary: #2f6fb5;
+}
+
+body,
+.main-sidebar,
+.btn,
+.form-control,
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'IBM Plex Sans Thai', 'Tahoma', sans-serif;
+}
+
+body { color: var(--app-ink); }
+
+.app-brand-text { display: flex; flex-direction: column; line-height: 1.25; margin-left: .5rem; }
+.app-title { font-weight: 600; font-size: 1.05rem; }
+.app-subtitle { font-size: .8rem; color: var(--app-muted); }
+
+.brand-icon { color: var(--app-primary); }
+.page-title { font-size: 1.4rem; font-weight: 600; margin: 0; }
+
+/* ตารางผลทดสอบ */
+.kv-table td:first-child { color: var(--app-muted); width: 40%; }
+
+/* Fix AdminLTE footer spacing (จากโปรเจคเดิม) */
+.wrapper { min-height: 100vh; display: flex !important; flex-direction: column !important; }
+.content-wrapper { flex: 1 0 auto !important; min-height: unset !important; }
+.main-footer { flex-shrink: 0 !important; }
+
+:focus-visible { outline: 2px solid var(--app-primary); outline-offset: 2px; }

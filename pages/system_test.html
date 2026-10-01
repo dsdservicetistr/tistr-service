@@ -1,0 +1,107 @@
+<div class="row">
+  <div class="col-lg-5">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">1. การเชื่อมต่อ API</h3>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">เช็คว่าหน้าเว็บคุยกับ Apps Script ได้ และชีตถูกสร้างครบ</p>
+        <button type="button" class="btn btn-primary" id="btn_ping" onclick="fn_ping()">
+          <i class="fas fa-plug"></i> ทดสอบเชื่อมต่อ
+        </button>
+        <div id="ping_result" class="mt-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">2. ข้อมูลตั้งต้นจากชีต</h3>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">อ่านหมวดบริการ ประเภทย่อย และสถานะงานจาก Google Sheet</p>
+        <button type="button" class="btn btn-outline-primary" id="btn_master" onclick="fn_master()">
+          <i class="fas fa-database"></i> โหลดข้อมูลตั้งต้น
+        </button>
+        <div id="master_result" class="mt-3"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fn_busy(btnId, busy) {
+  const $btn = $('#' + btnId);
+  $btn.prop('disabled', busy);
+  if (busy) {
+    $btn.data('label', $btn.html());
+    $btn.html('<i class="fas fa-spinner fa-spin"></i> กำลังทดสอบ...');
+  } else if ($btn.data('label')) {
+    $btn.html($btn.data('label'));
+  }
+}
+
+function fn_error_box(targetId, err) {
+  const $box = $('<div class="alert alert-danger mb-0"></div>');
+  $box.text(err.message + (err.code ? ' [' + err.code + ']' : ''));
+  $('#' + targetId).empty().append($box);
+}
+
+async function fn_ping() {
+  fn_busy('btn_ping', true);
+  try {
+    const d = await api.call('ping');
+    const rows = [
+      ['ระบบ', d.app],
+      ['เวลาเซิร์ฟเวอร์', d.server_time],
+      ['ปีงบประมาณ', d.fiscal_year],
+      ['เลขใบงานถัดไป', d.next_job_number]
+    ];
+    Object.keys(d.sheets).forEach(k => rows.push(['ชีต ' + k, d.sheets[k] + ' แถว']));
+
+    const $table = $('<table class="table table-sm kv-table mb-0"></table>');
+    rows.forEach(r => $table.append($('<tr>').append($('<td>').text(r[0]), $('<td>').text(r[1]))));
+
+    $('#ping_result').empty()
+      .append('<div class="alert alert-success py-2"><i class="fas fa-check-circle"></i> เชื่อมต่อสำเร็จ</div>')
+      .append($table);
+  } catch (err) {
+    fn_error_box('ping_result', err);
+  } finally {
+    fn_busy('btn_ping', false);
+  }
+}
+
+async function fn_master() {
+  fn_busy('btn_master', true);
+  try {
+    const d = await api.call('get_master');
+    const $wrap = $('<div></div>');
+
+    d.categories.forEach(cat => {
+      const subs = d.sub_types.filter(s => String(s.cat_id) === String(cat.cat_id));
+      const $item = $('<div class="mb-2"></div>');
+      $item.append(
+        $('<i>').addClass(cat.icon + ' mr-2').css('color', cat.color),
+        $('<strong>').text(cat.cat_name),
+        $('<span class="text-muted ml-2">').text('(' + subs.length + ' ประเภทย่อย)')
+      );
+      $wrap.append($item);
+    });
+
+    const $status = $('<div class="mt-3"></div>');
+    d.statuses.forEach(s => {
+      $status.append($('<span class="badge mr-1 mb-1">').addClass('badge-' + s.status_color)
+        .text(s.status_number + '. ' + s.status_admin_thai));
+    });
+    $wrap.append('<hr>', $status);
+
+    $('#master_result').empty().append($wrap);
+  } catch (err) {
+    fn_error_box('master_result', err);
+  } finally {
+    fn_busy('btn_master', false);
+  }
+}
+</script>
