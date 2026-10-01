@@ -7,7 +7,7 @@
  * รันซ้ำได้ ไม่ทับข้อมูลเดิม
  */
 function setupSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = Util.ss();
 
   Object.keys(CONFIG.SHEETS).forEach(key => {
     const def = CONFIG.SHEETS[key];

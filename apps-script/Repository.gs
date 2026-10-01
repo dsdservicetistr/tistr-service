@@ -15,7 +15,7 @@ class SheetRepository {
   }
 
   sheet() {
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(this.sheetName);
+    const sh = Util.ss().getSheetByName(this.sheetName);
     if (!sh) {
       throw new AppError('ไม่พบชีต "' + this.sheetName + '" กรุณารัน setupSheets() ก่อน', 'SHEET_NOT_FOUND');
     }

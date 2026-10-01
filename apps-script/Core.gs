@@ -37,6 +37,18 @@ class AppResponse {
 }
 
 const Util = {
+  // เปิด Google Sheet ที่ใช้เป็นฐานข้อมูล
+  // อ่าน ID จาก Script Properties ชื่อ SHEET_ID (ใช้ได้ทั้งสคริปต์แบบแยกและแบบผูกกับชีต)
+  ss: function () {
+    const id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+    if (id) return SpreadsheetApp.openById(id);
+
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+
+    throw new AppError('ยังไม่ได้ตั้งค่า SHEET_ID ใน Script Properties', 'NO_SHEET_ID');
+  },
+
   // วันเวลาปัจจุบัน (ค.ศ.) เก็บลงชีตเป็นข้อความ
   now: function () {
     return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
