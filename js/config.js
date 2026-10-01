@@ -8,5 +8,5 @@ const APP_CONFIG = {
   ORG_NAME: 'สำนักดิจิทัลและสารสนเทศ',
 
   // วาง URL ที่ได้จาก Apps Script > Deploy > Web app (ลงท้ายด้วย /exec)
-  API_URL: 'https://script.google.com/macros/s/วาง_DEPLOYMENT_ID_ตรงนี้/exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbytVJhuuIkAM3vHQiXH5W8DQ3hPpNMKcsj1VVNK_BNfx8muYOZ8-t-Y5T_zx105NrYA/exec'
 };
