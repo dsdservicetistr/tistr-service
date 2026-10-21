@@ -38,7 +38,18 @@ class Router {
       case 'get_master':
         return MasterController.getMaster();
 
-      // ===== ขั้นที่ 2 : User login (เพิ่มรอบหน้า) =====
+      // ===== ขั้นที่ 2 : User soft login =====
+      case 'user_login':
+        return AuthController.userLogin(data);
+
+      case 'user_update_phone':
+        return AuthController.userUpdatePhone(data);
+
+      case 'user_me':
+        return AuthController.userMe(req);
+
+      case 'logout':
+        return AuthController.logout(req);
 
       default:
         throw new AppError('ไม่รู้จักคำสั่ง flg = "' + flg + '"', 'UNKNOWN_FLG');

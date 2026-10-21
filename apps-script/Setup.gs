@@ -7,7 +7,10 @@
  * รันซ้ำได้ ไม่ทับข้อมูลเดิม
  */
 function setupSheets() {
-  const ss = Util.ss();
+  const id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  console.log('SHEET_ID = ' + id);
+  const ss = SpreadsheetApp.openById(id);
+  console.log('เปิดชีตได้: ' + ss.getName());
 
   Object.keys(CONFIG.SHEETS).forEach(key => {
     const def = CONFIG.SHEETS[key];
@@ -54,4 +57,9 @@ function setupSheets() {
 function seedIfEmpty_(repo, rows) {
   if (repo.count() > 0) return;
   rows.forEach(r => repo.insert(r));
+}
+
+// รันด้วยมือ 1 ครั้งหลังเพิ่มขั้นที่ 2 เพื่อให้สิทธิ์ส่งอีเมล (MailApp)
+function authorizeMail() {
+  console.log('ส่งเมลได้อีกวันนี้: ' + MailApp.getRemainingDailyQuota() + ' ฉบับ');
 }

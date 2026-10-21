@@ -10,6 +10,7 @@ const CONFIG = {
   APP_NAME: 'ระบบขอรับบริการ สทส.',
   EMAIL_DOMAIN: '@tistr.or.th',
   TIMEZONE: 'Asia/Bangkok',
+  SESSION_DAYS_USER: 30,          // Soft login ของ User อยู่ได้กี่วัน
 
   SHEETS: {
     USERS: {

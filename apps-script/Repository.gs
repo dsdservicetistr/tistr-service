@@ -166,4 +166,26 @@ class JobLogRepository extends SheetRepository {
 /* ---------- Session (ใช้ในขั้น Login) ---------- */
 class SessionRepository extends SheetRepository {
   constructor() { super(CONFIG.SHEETS.SESSIONS); }
+
+  create(ownerType, ownerId, days) {
+    return this.insert({
+      token: Util.uuid().replace(/-/g, '') + Util.uuid().replace(/-/g, ''),
+      owner_type: ownerType,
+      owner_id: ownerId,
+      expires_at: Util.addDays(days)
+    });
+  }
+
+  // คืน session ที่ยังไม่หมดอายุ (รูปแบบวันที่ yyyy-MM-dd HH:mm:ss เทียบแบบข้อความได้)
+  findValid(token) {
+    if (!token) return null;
+    const s = this.findById(token);
+    if (!s) return null;
+    return (String(s.expires_at) > Util.now()) ? s : null;
+  }
+
+  revoke(token) {
+    const s = this.findById(token);
+    if (s) this.update(token, { expires_at: Util.now() });
+  }
 }

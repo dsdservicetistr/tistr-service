@@ -1,0 +1,169 @@
+<div class="login-wrap">
+  <div class="login-card card">
+    <div class="card-body">
+
+      <div class="login-head">
+        <div class="login-icon"><i class="fas fa-headset"></i></div>
+        <h2 class="login-title">ขอรับบริการ สทส.</h2>
+        <p class="login-sub">เข้าสู่ระบบด้วยอีเมลองค์กรและเบอร์โทรภายใน ครั้งแรกระบบจะสร้างบัญชีให้อัตโนมัติ</p>
+      </div>
+
+      <!-- ฟอร์มเข้าสู่ระบบ -->
+      <form id="form_login" novalidate onsubmit="fn_login(); return false;">
+        <div class="form-group">
+          <label for="login_email">อีเมล</label>
+          <div class="input-group">
+            <input type="text" id="login_email" class="form-control" autocomplete="username"
+                   placeholder="ชื่ออีเมล" autocapitalize="off" spellcheck="false">
+            <div class="input-group-append">
+              <span class="input-group-text">@tistr.or.th</span>
+            </div>
+          </div>
+          <small class="field-error" id="err_email"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="login_phone">เบอร์โทรภายใน</label>
+          <input type="text" id="login_phone" class="form-control phone4" inputmode="numeric"
+                 maxlength="4" placeholder="4 หลักท้าย" autocomplete="off">
+          <small class="field-error" id="err_phone"></small>
+        </div>
+
+        <div class="alert alert-danger d-none" id="login_error"></div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn_login">
+          <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ
+        </button>
+      </form>
+
+      <!-- เบอร์ไม่ตรงกับที่เคยบันทึก -->
+      <div id="panel_mismatch" class="mismatch d-none" role="alertdialog" aria-labelledby="mismatch_title">
+        <div class="mismatch-icon"><i class="fas fa-phone-alt"></i></div>
+        <h3 id="mismatch_title" class="mismatch-title">เบอร์โต๊ะไม่ตรงกับที่ใช้ครั้งก่อน</h3>
+        <p class="mismatch-text">
+          อีเมล <strong id="mm_email"></strong> เคยใช้เบอร์อื่นในการขอรับบริการครั้งที่แล้ว
+          ต้องการอัปเดตเป็นเบอร์ <strong id="mm_phone"></strong> หรือไม่
+        </p>
+        <button type="button" class="btn btn-primary btn-block" id="btn_update_phone" onclick="fn_update_phone()">
+          <i class="fas fa-sync-alt"></i> อัปเดตเบอร์เป็นปัจจุบัน
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-block" onclick="fn_use_other_email()">
+          <i class="fas fa-at"></i> ใช้อีเมลอื่น
+        </button>
+        <p class="mismatch-note">เมื่ออัปเดตเบอร์ ระบบจะส่งอีเมลแจ้งไปยังเจ้าของอีเมลนี้</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+var login_state = { email: '', phone4: '' };
+
+// พิมพ์ได้เฉพาะตัวเลข
+$('#login_phone').on('input', function () {
+  this.value = this.value.replace(/\D/g, '').slice(0, 4);
+  $('#err_phone').text('');
+});
+
+// ถ้าวางอีเมลเต็มมา ตัดโดเมนออกให้เหลือชื่อ
+$('#login_email').on('input', function () {
+  const v = this.value.trim();
+  const at = v.indexOf('@');
+  if (at > -1 && v.toLowerCase().endsWith('@tistr.or.th')) this.value = v.slice(0, at);
+  $('#err_email').text('');
+});
+
+$('#login_email').trigger('focus');
+
+function fn_login_busy(busy) {
+  const $b = $('#btn_login');
+  $b.prop('disabled', busy);
+  $b.html(busy
+    ? '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...'
+    : '<i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ');
+}
+
+function fn_validate_login() {
+  let ok = true;
+  const name  = $('#login_email').val().trim();
+  const phone = $('#login_phone').val().trim();
+
+  if (name === '') {
+    $('#err_email').text('กรุณากรอกชื่ออีเมล');
+    ok = false;
+  } else if (name.indexOf('@') > -1) {
+    $('#err_email').text('ระบบรับเฉพาะอีเมล @tistr.or.th');
+    ok = false;
+  } else if (!/^[A-Za-z0-9._-]+$/.test(name)) {
+    $('#err_email').text('ชื่ออีเมลใช้ได้เฉพาะ a-z ตัวเลข . _ -');
+    ok = false;
+  }
+
+  if (!/^\d{4}$/.test(phone)) {
+    $('#err_phone').text('กรุณากรอกเบอร์ภายในเป็นตัวเลข 4 หลัก');
+    ok = false;
+  }
+
+  if (!ok) {
+    $('#form_login .field-error').filter(function () { return $(this).text() !== ''; })
+      .first().closest('.form-group').find('input').trigger('focus');
+  }
+  return ok;
+}
+
+async function fn_login() {
+  $('#login_error').addClass('d-none');
+  if (!fn_validate_login()) return;
+
+  login_state.email  = $('#login_email').val().trim();
+  login_state.phone4 = $('#login_phone').val().trim();
+
+  fn_login_busy(true);
+  try {
+    const d = await api.call('user_login', login_state);
+
+    if (d.result === 'phone_mismatch') {
+      $('#mm_email').text(d.email);
+      $('#mm_phone').text(login_state.phone4);
+      $('#form_login').addClass('d-none');
+      $('#panel_mismatch').removeClass('d-none');
+      $('#btn_update_phone').trigger('focus');
+      return;
+    }
+
+    fn_login_done(d);
+  } catch (err) {
+    $('#login_error').text(err.message).removeClass('d-none');
+  } finally {
+    fn_login_busy(false);
+  }
+}
+
+async function fn_update_phone() {
+  const $b = $('#btn_update_phone');
+  $b.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังอัปเดต...');
+  try {
+    const d = await api.call('user_update_phone', login_state);
+    fn_login_done(d);
+  } catch (err) {
+    $('#panel_mismatch').addClass('d-none');
+    $('#form_login').removeClass('d-none');
+    $('#login_error').text(err.message).removeClass('d-none');
+  } finally {
+    $b.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> อัปเดตเบอร์เป็นปัจจุบัน');
+  }
+}
+
+function fn_use_other_email() {
+  $('#panel_mismatch').addClass('d-none');
+  $('#form_login').removeClass('d-none');
+  $('#login_email').val('').trigger('focus');
+}
+
+function fn_login_done(d) {
+  Session.save(d.token, d.user);
+  sessionStorage.setItem('welcome_new', d.is_new ? '1' : '0');
+  App.go('1');
+}
+</script>

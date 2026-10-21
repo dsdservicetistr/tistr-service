@@ -18,7 +18,7 @@ class ApiClient {
     const body = JSON.stringify({
       flg: flg,
       data: data,
-      token: localStorage.getItem('session_token') || ''
+      token: Session.token()
     });
 
     let res;
@@ -39,6 +39,11 @@ class ApiClient {
 
     const json = await res.json();
     if (json.status !== 'ok') {
+      // token หมดอายุ/ไม่ถูกต้อง -> ล้าง session แล้วพากลับหน้าเข้าสู่ระบบ
+      if (json.code === 'AUTH_REQUIRED') {
+        Session.clear();
+        if (typeof App !== 'undefined') App.goLogin();
+      }
       const err = new Error(json.message || 'เกิดข้อผิดพลาด');
       err.code = json.code;
       throw err;

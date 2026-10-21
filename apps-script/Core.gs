@@ -54,6 +54,12 @@ const Util = {
     return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
   },
 
+  // วันเวลาอีก n วันข้างหน้า (ใช้กำหนดวันหมดอายุ session)
+  addDays: function (n) {
+    const d = new Date(Date.now() + n * 24 * 60 * 60 * 1000);
+    return Utilities.formatDate(d, CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+  },
+
   uuid: function () {
     return Utilities.getUuid();
   },

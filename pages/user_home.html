@@ -1,0 +1,47 @@
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title" id="home_greeting">ยินดีต้อนรับ</h3>
+      </div>
+      <div class="card-body">
+        <div id="home_new_badge" class="alert alert-info d-none">
+          <i class="fas fa-user-plus"></i> สร้างบัญชีใหม่เรียบร้อย ครั้งแรกที่แจ้งงาน ระบบจะขอชื่อ หน่วยงาน และห้องเพิ่ม
+        </div>
+
+        <table class="table table-sm kv-table mb-3">
+          <tr><td>อีเมล</td><td id="home_email">-</td></tr>
+          <tr><td>เบอร์โทรภายใน</td><td id="home_phone">-</td></tr>
+          <tr><td>สถานะการเข้าสู่ระบบ</td><td id="home_check"><i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบกับเซิร์ฟเวอร์</td></tr>
+        </table>
+
+        <p class="text-muted mb-0">ขั้นที่ 3 หน้าเลือกประเภทบริการจะอยู่ตรงนี้</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(async function () {
+  const cached = Session.user() || {};
+  $('#home_email').text(cached.email || '-');
+  $('#home_phone').text(cached.phone4 || '-');
+
+  if (sessionStorage.getItem('welcome_new') === '1') {
+    $('#home_new_badge').removeClass('d-none');
+    sessionStorage.removeItem('welcome_new');
+  }
+
+  try {
+    const d = await api.call('user_me');
+    Session.setUser(d.user);
+    App.renderUserBox();
+    $('#home_greeting').text('ยินดีต้อนรับ ' + (d.user.full_name || d.user.email));
+    $('#home_email').text(d.user.email);
+    $('#home_phone').text(d.user.phone4);
+    $('#home_check').html('<span class="text-success"><i class="fas fa-check-circle"></i> token ใช้งานได้</span>');
+  } catch (err) {
+    $('#home_check').empty().append($('<span class="text-danger">').text(err.message));
+  }
+})();
+</script>

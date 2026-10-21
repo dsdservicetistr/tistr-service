@@ -32,3 +32,46 @@ body { color: var(--app-ink); }
 .main-footer { flex-shrink: 0 !important; }
 
 :focus-visible { outline: 2px solid var(--app-primary); outline-offset: 2px; }
+
+/* ---------- ผู้ใช้ในเมนูซ้าย ---------- */
+.user-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #e3edf8; color: var(--app-primary);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 .6rem 0 .8rem; flex-shrink: 0;
+}
+.user-email { font-size: .85rem; word-break: break-all; color: var(--app-ink); }
+
+/* ---------- หน้าไม่มีเมนู (login) ---------- */
+body.app-bare .main-sidebar,
+body.app-bare .main-header .nav-item { display: none; }
+body.app-bare .content-wrapper,
+body.app-bare .main-header,
+body.app-bare .main-footer { margin-left: 0 !important; }
+
+/* ---------- หน้าเข้าสู่ระบบ ---------- */
+.login-wrap { display: flex; justify-content: center; padding: 2rem 0 3rem; }
+.login-card { width: 100%; max-width: 420px; border-radius: 14px; border: 1px solid var(--app-line); box-shadow: none; }
+.login-card .card-body { padding: 2rem 1.75rem; }
+.login-head { text-align: center; margin-bottom: 1.5rem; }
+.login-icon {
+  width: 64px; height: 64px; margin: 0 auto .9rem; border-radius: 18px;
+  background: var(--app-primary); color: #fff; font-size: 1.7rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.login-title { font-size: 1.45rem; font-weight: 600; margin-bottom: .35rem; }
+.login-sub { color: var(--app-muted); font-size: .92rem; margin: 0; }
+.phone4 { letter-spacing: .5em; font-size: 1.25rem; text-align: center; }
+.field-error { color: #c0392b; display: block; min-height: 1.1em; margin-top: .25rem; }
+
+.mismatch { text-align: center; animation: mm-in .25s ease-out; }
+.mismatch-icon {
+  width: 52px; height: 52px; margin: 0 auto .75rem; border-radius: 50%;
+  background: #fff4e0; color: #b7791f; font-size: 1.3rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.mismatch-title { font-size: 1.15rem; font-weight: 600; }
+.mismatch-text { color: var(--app-muted); }
+.mismatch-note { color: var(--app-muted); font-size: .8rem; margin: .75rem 0 0; }
+@keyframes mm-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mismatch { animation: none; } }
