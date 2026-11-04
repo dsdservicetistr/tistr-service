@@ -60,6 +60,36 @@ const Util = {
     return Utilities.formatDate(d, CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
   },
 
+  // วันเวลาอีก n นาทีข้างหน้า
+  addMinutes: function (n) {
+    const d = new Date(Date.now() + n * 60 * 1000);
+    return Utilities.formatDate(d, CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+  },
+
+  // SHA-256 เป็นเลขฐาน 16
+  sha256: function (text) {
+    const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(text), Utilities.Charset.UTF_8);
+    return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  },
+
+  // เลขสุ่ม n หลัก (ขึ้นต้นด้วย 0 ได้) ใช้ค่าสุ่มจาก UUID แทน Math.random
+  randomDigits: function (n) {
+    let out = '';
+    while (out.length < n) {
+      const hex = Utilities.getUuid().replace(/-/g, '');
+      for (let i = 0; i < hex.length && out.length < n; i++) {
+        const v = parseInt(hex[i], 16);
+        if (v < 10) out += v;          // รับเฉพาะ 0-9 เพื่อไม่ให้เลขบางตัวออกบ่อยกว่า
+      }
+    }
+    return out;
+  },
+
+  // แปลงข้อความ "yyyy-MM-dd HH:mm:ss" (เวลาไทย) กลับเป็น Date
+  parse: function (text) {
+    return new Date(String(text).replace(' ', 'T') + '+07:00');
+  },
+
   uuid: function () {
     return Utilities.getUuid();
   },

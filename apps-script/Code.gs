@@ -43,8 +43,12 @@ class Router {
       case 'user_login':
         return AuthController.userLogin(data);
 
-      case 'user_update_phone':
-        return AuthController.userUpdatePhone(data);
+      // เปลี่ยนเบอร์ต้องยืนยันด้วย OTP ทางอีเมล
+      case 'user_request_otp':
+        return AuthController.userRequestOtp(data);
+
+      case 'user_verify_otp':
+        return AuthController.userVerifyOtp(data);
 
       case 'user_me':
         return AuthController.userMe(req);

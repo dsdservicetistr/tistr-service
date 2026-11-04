@@ -41,16 +41,44 @@
         <div class="mismatch-icon"><i class="fas fa-phone-alt"></i></div>
         <h3 id="mismatch_title" class="mismatch-title">เบอร์โต๊ะไม่ตรงกับที่ใช้ครั้งก่อน</h3>
         <p class="mismatch-text">
-          อีเมล <strong id="mm_email"></strong> เคยใช้เบอร์อื่นในการขอรับบริการครั้งที่แล้ว
-          ต้องการอัปเดตเป็นเบอร์ <strong id="mm_phone"></strong> หรือไม่
+          อีเมล <strong class="js-mm-email"></strong> เคยใช้เบอร์อื่นในการขอรับบริการครั้งที่แล้ว
+          ต้องการเปลี่ยนเป็นเบอร์ <strong class="js-mm-phone"></strong> หรือไม่
         </p>
-        <button type="button" class="btn btn-primary btn-block" id="btn_update_phone" onclick="fn_update_phone()">
-          <i class="fas fa-sync-alt"></i> อัปเดตเบอร์เป็นปัจจุบัน
+        <button type="button" class="btn btn-primary btn-block" id="btn_request_otp" onclick="fn_request_otp()">
+          <i class="fas fa-envelope"></i> เปลี่ยนเบอร์ (ส่งรหัส OTP ไปที่อีเมล)
         </button>
         <button type="button" class="btn btn-outline-secondary btn-block" onclick="fn_use_other_email()">
           <i class="fas fa-at"></i> ใช้อีเมลอื่น
         </button>
-        <p class="mismatch-note">เมื่ออัปเดตเบอร์ ระบบจะส่งอีเมลแจ้งไปยังเจ้าของอีเมลนี้</p>
+        <div class="alert alert-danger d-none mt-3 mb-0" id="mismatch_error"></div>
+      </div>
+
+      <!-- กรอก OTP -->
+      <div id="panel_otp" class="mismatch d-none" role="dialog" aria-labelledby="otp_title">
+        <div class="mismatch-icon otp-icon"><i class="fas fa-key"></i></div>
+        <h3 id="otp_title" class="mismatch-title">กรอกรหัส OTP</h3>
+        <p class="mismatch-text">
+          ส่งรหัส 6 หลักไปที่ <strong class="js-mm-email"></strong> แล้ว
+          รหัสใช้ได้ <span id="otp_minutes">10</span> นาที
+        </p>
+        <form novalidate onsubmit="fn_verify_otp(); return false;">
+          <label for="otp_code" class="sr-only">รหัส OTP</label>
+          <input type="text" id="otp_code" class="form-control otp-input" inputmode="numeric"
+                 maxlength="6" autocomplete="one-time-code" placeholder="••••••">
+          <div class="alert alert-danger d-none mt-3 mb-0" id="otp_error"></div>
+          <button type="submit" class="btn btn-primary btn-block mt-3" id="btn_verify_otp">
+            <i class="fas fa-check"></i> ยืนยันและเข้าสู่ระบบ
+          </button>
+        </form>
+        <button type="button" class="btn btn-link btn-block" id="btn_resend" onclick="fn_request_otp()" disabled>
+          ขอรหัสใหม่
+        </button>
+        <button type="button" class="btn btn-link btn-block text-muted" onclick="fn_use_other_email()">
+          ยกเลิก ใช้อีเมลอื่น
+        </button>
+        <p class="mismatch-note">
+          ไม่ได้รับอีเมล? ดูในโฟลเดอร์ Junk หรือติดต่อ สทส. โทร <strong class="js-support-phone">9356</strong>
+        </p>
       </div>
 
     </div>
@@ -124,11 +152,13 @@ async function fn_login() {
     const d = await api.call('user_login', login_state);
 
     if (d.result === 'phone_mismatch') {
-      $('#mm_email').text(d.email);
-      $('#mm_phone').text(login_state.phone4);
-      $('#form_login').addClass('d-none');
-      $('#panel_mismatch').removeClass('d-none');
-      $('#btn_update_phone').trigger('focus');
+      $('.js-mm-email').text(d.email);
+      $('.js-mm-phone').text(login_state.phone4);
+      $('.js-support-phone').text(d.support_phone);
+      $('#mismatch_error').addClass('d-none');
+      $('#btn_request_otp').prop('disabled', false);
+      fn_show_panel('panel_mismatch');
+      $('#btn_request_otp').trigger('focus');
       return;
     }
 
@@ -140,25 +170,90 @@ async function fn_login() {
   }
 }
 
-async function fn_update_phone() {
-  const $b = $('#btn_update_phone');
-  $b.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังอัปเดต...');
+// ---------- เปลี่ยนเบอร์ด้วย OTP ----------
+var resend_timer = null;
+
+function fn_show_panel(id) {
+  $('#form_login, #panel_mismatch, #panel_otp').addClass('d-none');
+  $('#' + id).removeClass('d-none');
+}
+
+async function fn_request_otp() {
+  const $b = $('#btn_request_otp, #btn_resend');
+  $b.prop('disabled', true);
+  $('#btn_request_otp').html('<i class="fas fa-spinner fa-spin"></i> กำลังส่งรหัส...');
+  $('#mismatch_error, #otp_error').addClass('d-none');
+
   try {
-    const d = await api.call('user_update_phone', login_state);
+    const d = await api.call('user_request_otp', login_state);
+    $('.js-support-phone').text(d.support_phone);
+    $('#otp_minutes').text(d.expire_minutes);
+    fn_show_panel('panel_otp');
+    $('#otp_code').val('').trigger('focus');
+    fn_start_resend_timer(d.resend_seconds);
+  } catch (err) {
+    const target = $('#panel_otp').hasClass('d-none') ? '#mismatch_error' : '#otp_error';
+    $(target).text(err.message).removeClass('d-none');
+    if ($('#panel_otp').hasClass('d-none')) $('#btn_request_otp').prop('disabled', false);
+    else $('#btn_resend').prop('disabled', false);
+  } finally {
+    $('#btn_request_otp').html('<i class="fas fa-envelope"></i> เปลี่ยนเบอร์ (ส่งรหัส OTP ไปที่อีเมล)');
+  }
+}
+
+function fn_start_resend_timer(seconds) {
+  clearInterval(resend_timer);
+  let left = seconds;
+  const $r = $('#btn_resend').prop('disabled', true);
+  $r.text('ขอรหัสใหม่ได้ใน ' + left + ' วินาที');
+  resend_timer = setInterval(function () {
+    left--;
+    if (left <= 0) {
+      clearInterval(resend_timer);
+      $r.prop('disabled', false).text('ขอรหัสใหม่');
+    } else {
+      $r.text('ขอรหัสใหม่ได้ใน ' + left + ' วินาที');
+    }
+  }, 1000);
+}
+
+$('#otp_code').on('input', function () {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+  $('#otp_error').addClass('d-none');
+});
+
+async function fn_verify_otp() {
+  const code = $('#otp_code').val().trim();
+  if (!/^\d{6}$/.test(code)) {
+    $('#otp_error').text('กรุณากรอกรหัส OTP 6 หลัก').removeClass('d-none');
+    $('#otp_code').trigger('focus');
+    return;
+  }
+
+  const $b = $('#btn_verify_otp');
+  $b.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...');
+  try {
+    const d = await api.call('user_verify_otp', { email: login_state.email, otp: code });
+    clearInterval(resend_timer);
     fn_login_done(d);
   } catch (err) {
-    $('#panel_mismatch').addClass('d-none');
-    $('#form_login').removeClass('d-none');
-    $('#login_error').text(err.message).removeClass('d-none');
+    $('#otp_error').text(err.message).removeClass('d-none');
+    $('#otp_code').val('').trigger('focus');
+    // รหัสใช้ไม่ได้แล้ว เปิดปุ่มขอรหัสใหม่ทันที
+    if (['OTP_LOCKED', 'OTP_EXPIRED', 'OTP_INVALID'].indexOf(err.code) > -1) {
+      clearInterval(resend_timer);
+      $('#btn_resend').prop('disabled', false).text('ขอรหัสใหม่');
+    }
   } finally {
-    $b.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> อัปเดตเบอร์เป็นปัจจุบัน');
+    $b.prop('disabled', false).html('<i class="fas fa-check"></i> ยืนยันและเข้าสู่ระบบ');
   }
 }
 
 function fn_use_other_email() {
-  $('#panel_mismatch').addClass('d-none');
-  $('#form_login').removeClass('d-none');
+  clearInterval(resend_timer);
+  fn_show_panel('form_login');
   $('#login_email').val('').trigger('focus');
+  $('#login_phone').val('');
 }
 
 function fn_login_done(d) {

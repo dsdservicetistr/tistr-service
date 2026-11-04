@@ -75,4 +75,13 @@ body.app-bare .main-footer { margin-left: 0 !important; }
 .mismatch-note { color: var(--app-muted); font-size: .8rem; margin: .75rem 0 0; }
 @keyframes mm-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .mismatch { animation: none; } }
+
+/* ไอคอนเมนูที่ถูกเลือกเป็นสีขาว */
 .nav-sidebar .nav-link.active .nav-icon { color: #fff !important; }
+
+/* ---------- OTP ---------- */
+.otp-icon { background: #e3edf8; color: var(--app-primary); }
+.otp-input {
+  font-size: 1.6rem; letter-spacing: .6em; text-align: center;
+  padding-left: .6em; height: calc(1.5em + 1rem + 2px);
+}

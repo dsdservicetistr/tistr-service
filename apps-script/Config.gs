@@ -10,8 +10,16 @@ const CONFIG = {
   APP_NAME: 'ระบบขอรับบริการ สทส.',
   EMAIL_DOMAIN: '@tistr.or.th',
   TIMEZONE: 'Asia/Bangkok',
-	DEBUG: true,   // ช่วงพัฒนา = true / ก่อนเปิดใช้จริงเปลี่ยนเป็น false
+  DEBUG: true,                    // ช่วงพัฒนา = true / ก่อนเปิดใช้จริงเปลี่ยนเป็น false
+  SUPPORT_PHONE: '9356',          // เบอร์ติดต่อ สทส. ที่แสดงให้ User เห็น
   SESSION_DAYS_USER: 30,          // Soft login ของ User อยู่ได้กี่วัน
+
+  OTP: {
+    LENGTH: 6,
+    EXPIRE_MINUTES: 10,           // รหัสใช้ได้กี่นาที
+    MAX_ATTEMPTS: 5,              // กรอกผิดได้กี่ครั้งต่อรหัส
+    RESEND_SECONDS: 60            // ขอรหัสใหม่ได้ทุกกี่วินาที
+  },
 
   SHEETS: {
     USERS: {
@@ -49,6 +57,11 @@ const CONFIG = {
     JOB_LOG: {
       name: 'job_log',
       headers: ['log_id', 'job_id', 'action', 'actor_type', 'actor_id', 'note', 'created_at']
+    },
+    OTPS: {
+      name: 'otps',
+      headers: ['otp_id', 'email', 'purpose', 'new_phone4', 'otp_hash', 'otp_salt',
+                'expires_at', 'attempts', 'used', 'created_at']
     },
     SESSIONS: {
       name: 'sessions',

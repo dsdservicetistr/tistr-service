@@ -163,6 +163,22 @@ class JobLogRepository extends SheetRepository {
   }
 }
 
+/* ---------- OTP (ยืนยันการเปลี่ยนเบอร์ ฯลฯ) ---------- */
+class OtpRepository extends SheetRepository {
+  constructor() { super(CONFIG.SHEETS.OTPS); }
+
+  // รหัสล่าสุดที่ยังไม่ถูกใช้ ของอีเมล + วัตถุประสงค์นี้
+  findLatestActive(email, purpose) {
+    const rows = this.findAll().filter(o =>
+      String(o.email) === String(email) &&
+      String(o.purpose) === String(purpose) &&
+      String(o.used) !== '1');
+    if (!rows.length) return null;
+    rows.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    return rows[0];
+  }
+}
+
 /* ---------- Session (ใช้ในขั้น Login) ---------- */
 class SessionRepository extends SheetRepository {
   constructor() { super(CONFIG.SHEETS.SESSIONS); }
