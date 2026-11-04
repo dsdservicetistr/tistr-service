@@ -5,3 +5,4 @@
 .env
 *.rar
 *.zip
+.clasp.json

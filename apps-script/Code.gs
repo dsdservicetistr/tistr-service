@@ -23,7 +23,8 @@ function doPost(e) {
       return AppResponse.error(err.message, err.code);
     }
     console.error(err && err.stack ? err.stack : err);
-    return AppResponse.error('เกิดข้อผิดพลาดภายในระบบ', 'SERVER_ERROR');
+    const detail = CONFIG.DEBUG ? ' : ' + (err && err.message ? err.message : err) : '';
+    return AppResponse.error('เกิดข้อผิดพลาดภายในระบบ' + detail, 'SERVER_ERROR');
   }
 }
 
