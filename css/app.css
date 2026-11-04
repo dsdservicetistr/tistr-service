@@ -75,3 +75,4 @@ body.app-bare .main-footer { margin-left: 0 !important; }
 .mismatch-note { color: var(--app-muted); font-size: .8rem; margin: .75rem 0 0; }
 @keyframes mm-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .mismatch { animation: none; } }
+.nav-sidebar .nav-link.active .nav-icon { color: #fff !important; }
