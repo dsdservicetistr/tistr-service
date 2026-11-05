@@ -113,6 +113,20 @@ class StaffRepository extends SheetRepository {
   }
 }
 
+/* ---------- หน่วยงาน (ใช้สรุปรายปี / Dashboard) ---------- */
+class DivisionRepository extends SheetRepository {
+  constructor() { super(CONFIG.SHEETS.DIVISIONS); }
+
+  findActive() {
+    return this.findBy('active', '1').sort((a, b) => Number(a.sort) - Number(b.sort));
+  }
+
+  // ชื่อที่ใช้แสดง เช่น "กพท. - กองพัฒนาระบบดิจิทัล"
+  static label(d) {
+    return d ? (d.div_short ? d.div_short + ' - ' : '') + d.div_name : '';
+  }
+}
+
 /* ---------- หมวดบริการ ---------- */
 class CategoryRepository extends SheetRepository {
   constructor() { super(CONFIG.SHEETS.CATEGORIES); }

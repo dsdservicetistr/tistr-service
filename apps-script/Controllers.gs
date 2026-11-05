@@ -35,7 +35,11 @@ class MasterController {
       return c;
     });
     const statuses   = new StatusRepository().findAll().map(Util.clean);
+    const divisions  = new DivisionRepository().findActive().map(d => ({
+      div_id: d.div_id, div_code: d.div_code, div_short: d.div_short, div_name: d.div_name,
+      label: DivisionRepository.label(d)
+    }));
 
-    return { categories: categories, sub_types: subTypes, statuses: statuses };
+    return { categories: categories, sub_types: subTypes, statuses: statuses, divisions: divisions };
   }
 }

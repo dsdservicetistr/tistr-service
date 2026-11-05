@@ -31,13 +31,18 @@ const CONFIG = {
   SHEETS: {
     USERS: {
       name: 'users',
+      // คอลัมน์ใหม่ต่อท้ายเสมอ (ห้ามแทรกกลาง ไม่งั้นข้อมูลเดิมจะเลื่อนคอลัมน์)
       headers: ['user_id', 'email', 'phone4', 'full_name', 'position', 'division', 'room',
-                'created_at', 'updated_at']
+                'created_at', 'updated_at', 'division_id']
     },
     STAFF: {
       name: 'staff',
       headers: ['staff_id', 'ad_name', 'full_name', 'role', 'phone_desk', 'photo_url',
                 'pass_hash', 'pass_salt', 'active', 'created_at', 'updated_at']
+    },
+    DIVISIONS: {
+      name: 'divisions',
+      headers: ['div_id', 'div_code', 'div_short', 'div_name', 'sort', 'active']
     },
     CATEGORIES: {
       name: 'categories',
@@ -59,7 +64,7 @@ const CONFIG = {
                 'detail', 'location', 'asset_no', 'attachments',
                 'status_number', 'assigned_staff_id', 'appointment_at',
                 'cause', 'action_taken', 'cancel_by', 'cancel_reason', 'eval_status',
-                'created_at', 'updated_at']
+                'created_at', 'updated_at', 'division_id']
     },
     JOB_LOG: {
       name: 'job_log',

@@ -196,6 +196,7 @@ class AuthController {
       full_name: u.full_name,
       position:  u.position,
       division:  u.division,
+      division_id: u.division_id,
       room:      u.room
     };
   }

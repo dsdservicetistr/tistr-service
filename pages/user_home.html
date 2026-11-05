@@ -54,9 +54,9 @@
                 <input type="text" class="form-control" id="f_position" maxlength="100">
               </div>
               <div class="form-group col-md-6">
-                <label for="f_division">หน่วยงาน <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="f_division" maxlength="150" placeholder="เช่น กพท. สทส.">
-                <small class="field-error" id="err_division"></small>
+                <label for="f_division_id">หน่วยงาน <span class="text-danger">*</span></label>
+                <select class="form-control" id="f_division_id" style="width:100%"></select>
+                <small class="field-error" id="err_division_id"></small>
               </div>
               <div class="form-group col-md-6">
                 <label for="f_room">ห้อง / อาคาร <span class="text-danger">*</span></label>
@@ -135,6 +135,37 @@
   </div>
 </div>
 
+<!-- ===== หมวดที่ขอบริการทางอีเมล (VDO Conference) ===== -->
+<div class="modal fade" id="modal_mail" tabindex="-1" role="dialog" aria-labelledby="mail_title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mail_title"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="ปิด"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">บริการนี้ขอผ่านอีเมล ส่งรายละเอียดไปที่ <strong id="mail_to"></strong></p>
+        <ol class="sv-mail-steps">
+          <li>กด <strong>เปิดโปรแกรมอีเมล</strong> ระบบจะเตรียมหัวเรื่องและแบบฟอร์มไว้ให้</li>
+          <li>กรอกรายละเอียดในส่วนที่ว่างไว้ แล้วกดส่งจากอีเมลของท่าน</li>
+          <li>ถ้ากดแล้วไม่มีอะไรเปิดขึ้นมา ให้กด <strong>คัดลอกข้อความ</strong> แล้ววางในอีเมลที่ใช้อยู่</li>
+        </ol>
+        <label for="mail_preview" class="small text-muted mb-1">ตัวอย่างข้อความ</label>
+        <textarea id="mail_preview" class="form-control sv-mail-preview" rows="12" readonly></textarea>
+        <small class="text-success d-none" id="mail_copied"><i class="fas fa-check"></i> คัดลอกแล้ว</small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="fn_copy_mail()">
+          <i class="far fa-copy"></i> คัดลอกข้อความ
+        </button>
+        <a class="btn btn-primary" id="mail_open" href="#" onclick="setTimeout(() => $('#modal_mail').modal('hide'), 300)">
+          <i class="fas fa-envelope-open-text"></i> เปิดโปรแกรมอีเมล
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 var sv = {
   master: null,
@@ -170,7 +201,8 @@ function fn_render_cats() {
       $('<div class="sv-desc">').text(cat.cat_desc || '')
     );
     if (cat.link_url) {
-      $card.append('<i class="fas fa-external-link-alt sv-link-mark" aria-hidden="true"></i>');
+      const mark = /^mailto:/i.test(cat.link_url) ? 'fa-paper-plane' : 'fa-external-link-alt';
+      $card.append('<i class="fas ' + mark + ' sv-link-mark" aria-hidden="true"></i>');
     }
     $card.on('click', function () { fn_pick_cat(cat, $card); });
     $grid.append($card);
@@ -184,7 +216,9 @@ function fn_pick_cat(cat, $card) {
   // หมวดที่ให้บริการผ่านระบบอื่น (เช่น ขอยืม Notebook) -> เปิดลิงก์
   const link = String(cat.link_url || '');
   if (link !== '') {
-    if (/^https?:\/\//i.test(link)) {
+    if (/^mailto:/i.test(link)) {
+      fn_open_mail(cat, link.replace(/^mailto:/i, ''));
+    } else if (/^https?:\/\//i.test(link)) {
       window.open(link, '_blank', 'noopener');
     } else {
       $('#pick_error').text('ยังไม่ได้ตั้งลิงก์ของ "' + cat.cat_name + '" กรุณาติดต่อ สทส.').removeClass('d-none');
@@ -266,11 +300,11 @@ function fn_fill_profile() {
   const u = Session.user() || {};
   $('#f_full_name').val(u.full_name || '');
   $('#f_position').val(u.position || '');
-  $('#f_division').val(u.division || '');
+  fn_init_division(u.division_id);
   $('#f_room').val(u.room || '');
   if (!$('#f_location').val()) $('#f_location').val(u.room || '');
 
-  if (u.full_name && u.division && u.room) {
+  if (u.full_name && u.division_id && u.room) {
     $('#profile_view').empty().append(
       $('<div class="sv-profile-name">').text(u.full_name + (u.position ? ' (' + u.position + ')' : '')),
       $('<div class="text-muted small">').text(u.division + ' · ' + u.room + ' · โทร ' + u.phone4)
@@ -282,6 +316,79 @@ function fn_fill_profile() {
     $('#profile_edit').removeClass('d-none');
     $('#btn_edit_profile').addClass('d-none');
   }
+}
+
+/* ---------- หน่วยงาน (Select2 พิมพ์ค้นหาได้) ---------- */
+function fn_init_division(selectedId) {
+  const $sel = $('#f_division_id');
+  if (!$sel.data('select2')) {
+    $sel.empty().append('<option value=""></option>');
+    sv.master.divisions.forEach(function (d) {
+      $sel.append($('<option>').val(d.div_id).text(d.label));
+    });
+    $sel.select2({
+      theme: 'bootstrap4',
+      placeholder: 'พิมพ์ชื่อหรืออักษรย่อหน่วยงาน',
+      allowClear: true,
+      width: '100%',
+      language: {
+        noResults: () => 'ไม่พบหน่วยงาน ถ้าไม่มีในรายการ กรุณาแจ้ง สทส.',
+        searching: () => 'กำลังค้นหา...'
+      }
+    }).on('change', function () { $('#err_division_id').text(''); });
+  }
+  $sel.val(selectedId ? String(selectedId) : '').trigger('change.select2');
+}
+
+function fn_division_label(id) {
+  const d = (sv.master.divisions || []).find(x => String(x.div_id) === String(id));
+  return d ? d.label : '';
+}
+
+/* ---------- VDO Conference : ให้ User ส่งอีเมลเอง ---------- */
+function fn_open_mail(cat, to) {
+  const u = Session.user() || {};
+  const subject = '[ขอรับบริการ ' + cat.cat_name + '] ' + (u.full_name || u.email || '');
+  const body = [
+    'เรียน เจ้าหน้าที่ สทส.',
+    '',
+    'ขอรับบริการ ' + cat.cat_name + ' โดยมีรายละเอียดดังนี้',
+    '',
+    'ชื่อการประชุม / หัวข้อ : ',
+    'วันที่ประชุม : ',
+    'เวลา (เริ่ม - สิ้นสุด) : ',
+    'ห้องประชุม / สถานที่ : ',
+    'แพลตฟอร์ม (Zoom / MS Teams / Google Meet / อื่นๆ) : ',
+    'จำนวนผู้เข้าร่วมโดยประมาณ : ',
+    'อุปกรณ์ที่ต้องการ (กล้อง ไมโครโฟน ลำโพง จอ ฯลฯ) : ',
+    'รายละเอียดเพิ่มเติม : ',
+    '',
+    'ผู้ประสานงาน',
+    'ชื่อ : ' + (u.full_name || ''),
+    'หน่วยงาน : ' + (fn_division_label(u.division_id) || u.division || ''),
+    'โทรภายใน : ' + (u.phone4 || ''),
+    'อีเมล : ' + (u.email || '')
+  ].join('\r\n');
+
+  sv.mail = { to: to, subject: subject, body: body };
+  $('#mail_title').text(cat.cat_name);
+  $('#mail_to').text(to);
+  $('#mail_preview').val('ถึง: ' + to + '\nเรื่อง: ' + subject + '\n\n' + body.replace(/\r\n/g, '\n'));
+  $('#mail_copied').addClass('d-none');
+  $('#mail_open').attr('href',
+    'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
+  $('#modal_mail').modal('show');
+}
+
+async function fn_copy_mail() {
+  const text = $('#mail_preview').val();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    $('#mail_preview').trigger('select');      // เครื่องที่ไม่รองรับ clipboard API
+    document.execCommand('copy');
+  }
+  $('#mail_copied').removeClass('d-none');
 }
 
 function fn_edit_profile() {
@@ -356,21 +463,22 @@ function fn_render_files() {
 function fn_validate_job() {
   const rules = [
     ['full_name', 'กรุณากรอกชื่อ-นามสกุล'],
-    ['division',  'กรุณากรอกหน่วยงาน'],
+    ['division_id', 'กรุณาเลือกหน่วยงาน'],
     ['room',      'กรุณากรอกห้อง / อาคาร'],
     ['detail',    'กรุณาอธิบายปัญหา'],
     ['location',  'กรุณาระบุสถานที่']
   ];
   let first = null;
   rules.forEach(function (r) {
-    if ($('#f_' + r[0]).val().trim() === '') {
+    if (String($('#f_' + r[0]).val() || '').trim() === '') {
       $('#err_' + r[0]).text(r[1]);
       if (!first) first = r[0];
     }
   });
   if (first) {
-    if (['full_name', 'division', 'room'].indexOf(first) > -1) fn_edit_profile();
-    $('#f_' + first).trigger('focus');
+    if (['full_name', 'division_id', 'room'].indexOf(first) > -1) fn_edit_profile();
+    if (first === 'division_id') $('#f_division_id').select2('open');
+    else $('#f_' + first).trigger('focus');
     return false;
   }
   return true;
@@ -389,7 +497,7 @@ async function fn_submit_job() {
       sub_id: sv.sub ? sv.sub.sub_id : '',
       full_name: $('#f_full_name').val().trim(),
       position: $('#f_position').val().trim(),
-      division: $('#f_division').val().trim(),
+      division_id: $('#f_division_id').val() || '',
       room: $('#f_room').val().trim(),
       detail: $('#f_detail').val().trim(),
       location: $('#f_location').val().trim(),

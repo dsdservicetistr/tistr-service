@@ -187,3 +187,11 @@ body.app-bare .main-footer { margin-left: 0 !important; }
   .sv-card, .sv-chip, .sv-sub, .sv-check { transition: none; }
   .sv-card, .sv-card.on .sv-ico, .sv-done-icon, .sv-slide-in { animation: none; }
 }
+
+/* VDO Conference : หน้าต่างส่งอีเมล */
+.sv-mail-steps { padding-left: 1.2rem; color: var(--app-muted); }
+.sv-mail-steps li { margin-bottom: .2rem; }
+.sv-mail-preview { font-size: .88rem; background: #f6f8fb; resize: vertical; }
+
+/* Select2 ให้ใช้ฟอนต์เดียวกับระบบ */
+.select2-container, .select2-dropdown, .select2-search__field { font-family: 'IBM Plex Sans Thai', 'Tahoma', sans-serif; }

@@ -26,11 +26,16 @@ class JobController {
     }
 
     // ---------- ข้อมูลผู้แจ้ง (บังคับครั้งแรก) ----------
+    const divId = String(data.division_id || user.division_id || '');
+    const div   = divId ? new DivisionRepository().findById(divId) : null;
+    if (!div || String(div.active) !== '1') throw new AppError('กรุณาเลือกหน่วยงาน', 'REQUIRED');
+
     const profile = {
-      full_name: Util.text(data.full_name || user.full_name, 'ชื่อ-นามสกุล', 100, true),
-      position:  Util.text(data.position  || user.position,  'ตำแหน่ง',     100, false),
-      division:  Util.text(data.division  || user.division,  'หน่วยงาน',    150, true),
-      room:      Util.text(data.room      || user.room,      'ห้อง / อาคาร', 100, true)
+      full_name:   Util.text(data.full_name || user.full_name, 'ชื่อ-นามสกุล', 100, true),
+      position:    Util.text(data.position  || user.position,  'ตำแหน่ง',     100, false),
+      division_id: String(div.div_id),
+      division:    DivisionRepository.label(div),           // เก็บชื่อไว้แสดงผล
+      room:        Util.text(data.room      || user.room,      'ห้อง / อาคาร', 100, true)
     };
 
     // ---------- รายละเอียดงาน ----------
@@ -64,7 +69,8 @@ class JobController {
         location: location,
         asset_no: assetNo,
         attachments: '',
-        status_number: '1'
+        status_number: '1',
+        division_id: profile.division_id                      // หน่วยงาน ณ วันที่แจ้ง (ใช้สรุปรายปี)
       });
     } finally {
       lock.releaseLock();
