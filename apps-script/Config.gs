@@ -13,6 +13,16 @@ const CONFIG = {
   DEBUG: true,                    // ช่วงพัฒนา = true / ก่อนเปิดใช้จริงเปลี่ยนเป็น false
   SUPPORT_PHONE: '9356',          // เบอร์ติดต่อ สทส. ที่แสดงให้ User เห็น
   SESSION_DAYS_USER: 30,          // Soft login ของ User อยู่ได้กี่วัน
+  SESSION_DAYS_STAFF: 1,          // เจ้าหน้าที่ต้องเข้าระบบใหม่ทุกวัน
+
+  STAFF_LOGIN: {
+    MAX_FAILS: 5,                 // ใส่รหัสผิดติดกันได้กี่ครั้ง
+    LOCK_MINUTES: 15,             // ล็อกกี่นาทีเมื่อผิดเกิน
+    PASSWORD_MIN: 8,
+    HASH_ROUNDS: 1000
+  },
+
+  NOTIFY_ADMIN_NEW_JOB: true,     // ส่งอีเมลแจ้ง Admin ทุกคนเมื่อมีงานใหม่
 
   // ไฟล์แนบของใบงาน
   UPLOAD: {
@@ -38,7 +48,7 @@ const CONFIG = {
     STAFF: {
       name: 'staff',
       headers: ['staff_id', 'ad_name', 'full_name', 'role', 'phone_desk', 'photo_url',
-                'pass_hash', 'pass_salt', 'active', 'created_at', 'updated_at']
+                'pass_hash', 'pass_salt', 'active', 'created_at', 'updated_at', 'email']
     },
     DIVISIONS: {
       name: 'divisions',

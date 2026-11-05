@@ -85,6 +85,8 @@ class JobController {
     logs.log(job.job_id, 'create', 'user', user.user_id,
       cat.cat_name + (sub ? ' > ' + sub.sub_name : '') + (files.length ? ' (แนบรูป ' + files.length + ' ไฟล์)' : ''));
 
+    JobController._notifyAdmins(job, cat, sub, updatedUser);
+
     const status = new StatusRepository().findById('1');
     return {
       job_number: job.job_number,
@@ -95,6 +97,25 @@ class JobController {
       status_color: status ? status.status_color : 'secondary',
       user: AuthController.publicUser(Object.assign({}, user, updatedUser))
     };
+  }
+
+  // แจ้ง Admin ทุกคนว่ามีงานใหม่
+  static _notifyAdmins(job, cat, sub, user) {
+    if (!CONFIG.NOTIFY_ADMIN_NEW_JOB) return;
+    const to = new StaffRepository().findAdmins().map(a => a.email).filter(Boolean);
+    if (!to.length) return;
+    try {
+      MailApp.sendEmail({
+        to: to.join(','),
+        subject: '[' + CONFIG.APP_NAME + '] งานใหม่ ' + job.job_number + ' : ' + cat.cat_name,
+        htmlBody: 'มีงานใหม่เลขที่ <b>' + job.job_number + '</b><br>' +
+          'หมวด: ' + Util.esc(cat.cat_name + (sub ? ' > ' + sub.sub_name : '')) + '<br>' +
+          'ผู้แจ้ง: ' + Util.esc(user.full_name) + ' (' + Util.esc(user.division) + ') โทร ' + Util.esc(user.phone4) + '<br>' +
+          'สถานที่: ' + Util.esc(job.location) + '<br>รายละเอียด: ' + Util.esc(String(job.detail).slice(0, 300))
+      });
+    } catch (e) {
+      console.error('ส่งเมลแจ้ง Admin ไม่สำเร็จ: ' + e);
+    }
   }
 
   /* ---------- ไฟล์แนบ ---------- */

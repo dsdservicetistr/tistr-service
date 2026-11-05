@@ -1,0 +1,293 @@
+<!-- แท็บกรองสถานะ -->
+<ul class="nav nav-pills jb-tabs mb-3" id="job_tabs" role="tablist">
+  <li class="nav-item"><a class="nav-link" href="#" data-filter="new">งานใหม่ <span class="badge badge-light js-count-new">0</span></a></li>
+  <li class="nav-item"><a class="nav-link active" href="#" data-filter="open">กำลังดำเนินการ <span class="badge badge-light js-count-open">0</span></a></li>
+  <li class="nav-item"><a class="nav-link" href="#" data-filter="closed">ปิด / ยกเลิก <span class="badge badge-light js-count-closed">0</span></a></li>
+  <li class="nav-item"><a class="nav-link" href="#" data-filter="all">ทั้งหมด <span class="badge badge-light js-count-all">0</span></a></li>
+  <li class="nav-item ml-auto">
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fn_load_jobs()" title="โหลดใหม่">
+      <i class="fas fa-sync-alt" id="icon_reload"></i> <span class="d-none d-sm-inline" id="last_load"></span>
+    </button>
+  </li>
+</ul>
+
+<div class="card card-primary card-outline">
+  <div class="card-body">
+    <div class="alert alert-danger d-none" id="jobs_error"></div>
+    <div class="table-responsive">
+      <table class="table table-hover table-sm w-100" id="tb_jobs">
+        <thead>
+          <tr>
+            <th>เลขที่</th>
+            <th>วันที่แจ้ง</th>
+            <th>ผู้แจ้ง</th>
+            <th>หมวด / อาการ</th>
+            <th>สถานะ</th>
+            <th>ผู้รับผิดชอบ</th>
+            <th class="text-center">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== รายละเอียดใบงาน ===== -->
+<div class="modal fade" id="modal_job" tabindex="-1" role="dialog" aria-labelledby="job_title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="job_title">ใบงาน</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="ปิด"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body" id="job_body">
+        <div class="text-muted"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var jb = { filter: 'open', table: null, detail: null, timer: null };
+
+function esc(t) {
+  return $('<div>').text(t === undefined || t === null ? '' : String(t)).html();
+}
+
+/* ---------- ตาราง ---------- */
+jb.table = $('#tb_jobs').DataTable({
+  data: [],
+  order: [[1, 'desc']],
+  pageLength: 25,
+  autoWidth: false,
+  columns: [
+    { data: 'job_number', render: d => '<strong>' + esc(d) + '</strong>' },
+    { data: 'created_at', render: (d, type) => type === 'display'
+        ? esc(Fmt.dateTime(d)) + '<div class="text-muted small">' + esc(Fmt.ago(d)) + '</div>' : d },
+    { data: null, render: r => esc(r.user_name) + '<div class="text-muted small">' + esc(r.division) +
+        (r.user_phone ? ' · โทร ' + esc(r.user_phone) : '') + '</div>' },
+    { data: null, render: r => esc(r.category) +
+        (r.cat_changed ? ' <span class="badge badge-warning" title="Admin เปลี่ยนหมวดแล้ว">ปรับหมวด</span>' : '') +
+        (r.has_files ? ' <i class="fas fa-paperclip text-muted" title="มีรูปแนบ"></i>' : '') +
+        '<div class="text-muted small jb-short">' + esc(r.detail_short) + '</div>' },
+    { data: null, render: r => '<span class="badge badge-' + esc(r.status_color) + '">' + esc(r.status_text) + '</span>' },
+    { data: 'assigned_name', render: d => d ? esc(d) : '<span class="text-muted">-</span>' },
+    { data: 'job_id', orderable: false, className: 'text-center',
+      render: id => '<button type="button" class="btn btn-sm btn-primary" onclick="fn_open_job(\'' + esc(id) + '\')">' +
+        '<i class="fas fa-search"></i> ดู</button>' }
+  ],
+  language: {
+    lengthMenu: 'แสดง _MENU_ รายการ',
+    zeroRecords: 'ไม่มีงานในหมวดนี้',
+    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+    infoEmpty: 'ไม่มีรายการ',
+    infoFiltered: '(กรองจาก _MAX_ รายการ)',
+    search: 'ค้นหา:',
+    paginate: { first: 'หน้าแรก', last: 'หน้าสุดท้าย', next: 'ถัดไป', previous: 'ก่อนหน้า' }
+  }
+});
+
+$('#job_tabs').on('click', '[data-filter]', function (e) {
+  e.preventDefault();
+  $('#job_tabs .nav-link').removeClass('active');
+  $(this).addClass('active');
+  jb.filter = $(this).data('filter');
+  fn_load_jobs();
+});
+
+async function fn_load_jobs() {
+  $('#icon_reload').addClass('fa-spin');
+  try {
+    const d = await api.call('staff_list_jobs', { filter: jb.filter });
+    StaffSession.setUser(d.me);
+    App.renderUserBox();
+    Object.keys(d.counts).forEach(k => $('.js-count-' + k).text(d.counts[k]));
+    jb.table.clear().rows.add(d.rows).draw(false);
+    $('#jobs_error').addClass('d-none');
+    $('#last_load').text('อัปเดต ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
+  } catch (err) {
+    $('#jobs_error').text(err.message).removeClass('d-none');
+  } finally {
+    $('#icon_reload').removeClass('fa-spin');
+  }
+}
+
+fn_load_jobs();
+
+// โหลดใหม่ทุก 60 วินาที เฉพาะตอนเปิดหน้านี้อยู่และไม่ได้เปิดรายละเอียดงาน
+clearInterval(window.jobsTimer);
+window.jobsTimer = setInterval(function () {
+  if (!document.getElementById('tb_jobs')) { clearInterval(window.jobsTimer); return; }
+  if (document.visibilityState === 'visible' && !$('#modal_job').hasClass('show')) fn_load_jobs();
+}, 60000);
+
+/* ---------- รายละเอียดใบงาน ---------- */
+async function fn_open_job(jobId) {
+  $('#job_title').text('ใบงาน');
+  $('#job_body').html('<div class="text-muted"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</div>');
+  $('#modal_job').modal('show');
+  try {
+    jb.detail = await api.call('staff_job_detail', { job_id: jobId });
+    fn_render_detail();
+  } catch (err) {
+    $('#job_body').empty().append($('<div class="alert alert-danger">').text(err.message));
+  }
+}
+
+const LOG_TEXT = {
+  create: 'แจ้งเรื่อง', change_category: 'เปลี่ยนหมวด', assign: 'มอบหมายงาน', cancel: 'ยกเลิกงาน',
+  accept: 'รับงาน', return: 'ส่งคืน Admin', appoint: 'นัดหมาย', message: 'ข้อความ', close: 'ปิดงาน'
+};
+
+function fn_render_detail() {
+  const d = jb.detail, j = d.job, u = d.user;
+  $('#job_title').html(esc(j.job_number) + ' <span class="badge badge-' + esc(j.status_color) + ' ml-2">' + esc(j.status_text) + '</span>');
+
+  let html = '';
+  html += '<div class="row">';
+  html += '<div class="col-md-6 mb-3"><div class="jb-label">ผู้แจ้ง</div>' +
+    '<div class="font-weight-bold">' + esc(u.full_name) + (u.position ? ' <span class="text-muted font-weight-normal">(' + esc(u.position) + ')</span>' : '') + '</div>' +
+    '<div class="small">' + esc(u.division) + '</div>' +
+    '<div class="small">โทร <a href="tel:' + esc(u.phone4) + '">' + esc(u.phone4) + '</a> · ' + esc(u.email) + '</div></div>';
+  html += '<div class="col-md-6 mb-3"><div class="jb-label">แจ้งเมื่อ</div><div>' + esc(Fmt.dateTime(j.created_at)) + '</div>' +
+    '<div class="jb-label mt-2">สถานที่</div><div>' + esc(j.location) + (j.asset_no ? ' · ครุภัณฑ์ ' + esc(j.asset_no) : '') + '</div></div>';
+  html += '</div>';
+
+  html += '<div class="jb-label">หมวด</div><div class="mb-2">' + esc(j.category) +
+    (j.category !== j.original_category ? '<div class="small text-muted">ผู้แจ้งเลือกไว้: ' + esc(j.original_category) + '</div>' : '') + '</div>';
+  html += '<div class="jb-label">รายละเอียด</div><div class="jb-detail mb-3">' + esc(j.detail) + '</div>';
+
+  if (j.files.length) {
+    html += '<div class="jb-label">รูปแนบ</div><div class="jb-thumbs mb-3">';
+    j.files.forEach(f => {
+      html += '<button type="button" class="jb-thumb" data-file="' + esc(f.id) + '" onclick="fn_load_file(this)">' +
+        '<i class="fas fa-image"></i><span>ดูรูป</span></button>';
+    });
+    html += '</div>';
+  }
+
+  if (j.assigned_name) html += '<div class="jb-label">ผู้รับผิดชอบ</div><div class="mb-3">' + esc(j.assigned_name) + '</div>';
+  if (j.cancel_reason) html += '<div class="alert alert-danger py-2">ยกเลิกเนื่องจาก ' + esc(j.cancel_reason) + '</div>';
+
+  // ประวัติ
+  html += '<div class="jb-label">ประวัติ</div><ul class="jb-log">';
+  d.logs.forEach(l => {
+    html += '<li><span class="jb-log-time">' + esc(Fmt.dateTime(l.created_at)) + '</span> ' +
+      '<strong>' + esc(LOG_TEXT[l.action] || l.action) + '</strong> โดย ' + esc(l.actor) +
+      (l.note ? '<div class="text-muted small">' + esc(l.note) + '</div>' : '') + '</li>';
+  });
+  html += '</ul>';
+
+  if (d.can_manage) html += fn_admin_panel_html();
+  $('#job_body').html(html);
+  if (d.can_manage) fn_init_admin_panel();
+}
+
+/* ---------- รูปแนบ (โหลดจาก Drive ผ่าน API ไฟล์ยังเป็นส่วนตัว) ---------- */
+async function fn_load_file(btn) {
+  const $b = $(btn).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+  try {
+    const f = await api.call('staff_get_file', { job_id: jb.detail.job.job_id, file_id: $b.data('file') });
+    const src = 'data:' + f.type + ';base64,' + f.data;
+    const $a = $('<a target="_blank" rel="noopener" class="jb-thumb jb-thumb-img">').attr('href', src)
+      .append($('<img>').attr({ src: src, alt: f.name }));
+    $a.on('click', function (e) {            // เปิดรูปเต็มในแท็บใหม่
+      e.preventDefault();
+      const w = window.open();
+      if (w) w.document.write('<img src="' + src + '" style="max-width:100%">');
+    });
+    $b.replaceWith($a);
+  } catch (err) {
+    $b.prop('disabled', false).html('<i class="fas fa-exclamation-triangle"></i><span>ลองใหม่</span>');
+  }
+}
+
+/* ---------- ส่วนจัดการของ Admin ---------- */
+function fn_admin_panel_html() {
+  const j = jb.detail.job;
+  const canAssign = ['1', '2'].indexOf(String(j.status_number)) > -1;
+  return '<hr><h6 class="font-weight-bold mb-3"><i class="fas fa-user-cog"></i> จัดการงาน</h6>' +
+    (canAssign ?
+    '<div class="jb-box"><label for="a_staff" class="jb-label">มอบหมายให้</label>' +
+    '<select id="a_staff" style="width:100%"></select>' +
+    '<input type="text" id="a_note" class="form-control form-control-sm mt-2" maxlength="500" placeholder="หมายเหตุถึงผู้รับผิดชอบ (ถ้ามี)">' +
+    '<button type="button" class="btn btn-primary btn-sm mt-2" id="btn_assign" onclick="fn_assign()"><i class="fas fa-user-check"></i> มอบหมายงาน</button></div>'
+    : '') +
+    '<div class="jb-box"><span class="jb-label">เปลี่ยนหมวด (หลังโทรประสานกับผู้แจ้ง)</span>' +
+    '<div class="form-row"><div class="col-sm-6 mb-2"><select id="c_cat" class="form-control form-control-sm"></select></div>' +
+    '<div class="col-sm-6 mb-2"><select id="c_sub" class="form-control form-control-sm"></select></div></div>' +
+    '<input type="text" id="c_note" class="form-control form-control-sm" maxlength="500" placeholder="เหตุผล เช่น โทรคุยแล้วเป็นปัญหาเครื่องพิมพ์">' +
+    '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btn_change" onclick="fn_change_cat()"><i class="fas fa-exchange-alt"></i> บันทึกหมวดใหม่</button></div>' +
+    '<div class="jb-box jb-box-danger"><span class="jb-label">ยกเลิกงาน</span>' +
+    '<input type="text" id="x_reason" class="form-control form-control-sm" maxlength="500" placeholder="เหตุผล (ผู้แจ้งและผู้รับผิดชอบจะเห็นข้อความนี้)">' +
+    '<button type="button" class="btn btn-outline-danger btn-sm mt-2" id="btn_cancel" onclick="fn_cancel_job()"><i class="fas fa-ban"></i> ยกเลิกงาน</button></div>' +
+    '<div class="alert alert-danger d-none mt-2" id="admin_error"></div>';
+}
+
+function fn_init_admin_panel() {
+  const d = jb.detail, j = d.job;
+
+  // ผู้รับผิดชอบ : ขึ้นคนที่เป็นผู้ดูแลประจำประเภทนี้ก่อน
+  const $s = $('#a_staff');
+  if ($s.length) {
+    $s.append('<option value=""></option>');
+    d.staff.forEach(s => {
+      const tag = String(s.staff_id) === String(d.suggest_staff_id) ? ' ★ ผู้ดูแลประจำ' : '';
+      $s.append($('<option>').val(s.staff_id).text(s.full_name + ' (' + (s.role === 'admin' ? 'Admin' : 'Operator') +
+        (s.phone_desk ? ' · ' + s.phone_desk : '') + ')' + tag));
+    });
+    $s.select2({ theme: 'bootstrap4', placeholder: 'เลือกผู้รับผิดชอบ', dropdownParent: $('#modal_job'), width: '100%' });
+    $s.val(j.assigned_staff_id || d.suggest_staff_id || '').trigger('change');
+  }
+
+  // หมวด / ประเภทย่อย
+  const $c = $('#c_cat'), $sub = $('#c_sub');
+  d.categories.forEach(c => $c.append($('<option>').val(c.cat_id).text(c.cat_name)));
+  function fillSub() {
+    const list = d.sub_types.filter(s => String(s.cat_id) === String($c.val()));
+    $sub.empty();
+    if (!list.length) { $sub.append('<option value="">(ไม่มีประเภทย่อย)</option>').prop('disabled', true); return; }
+    $sub.prop('disabled', false);
+    list.forEach(s => $sub.append($('<option>').val(s.sub_id).text(s.sub_name)));
+  }
+  $c.val(j.cat_id).on('change', fillSub);
+  fillSub();
+  if (j.sub_id) $sub.val(j.sub_id);
+}
+
+async function fn_admin_action(btnId, flg, data, okText) {
+  const $b = $('#' + btnId), old = $b.html();
+  $b.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
+  $('#admin_error').addClass('d-none');
+  try {
+    await api.call(flg, data);
+    await fn_open_job(jb.detail.job.job_id);
+    fn_load_jobs();
+    $('#job_body').prepend($('<div class="alert alert-success py-2">').text(okText));
+  } catch (err) {
+    $('#admin_error').text(err.message).removeClass('d-none');
+    $b.prop('disabled', false).html(old);
+  }
+}
+
+function fn_assign() {
+  const staffId = $('#a_staff').val();
+  if (!staffId) { $('#admin_error').text('กรุณาเลือกผู้รับผิดชอบ').removeClass('d-none'); return; }
+  fn_admin_action('btn_assign', 'admin_assign',
+    { job_id: jb.detail.job.job_id, staff_id: staffId, note: $('#a_note').val().trim() }, 'มอบหมายงานเรียบร้อย');
+}
+
+function fn_change_cat() {
+  fn_admin_action('btn_change', 'admin_change_category', {
+    job_id: jb.detail.job.job_id, cat_id: $('#c_cat').val(), sub_id: $('#c_sub').val() || '', note: $('#c_note').val().trim()
+  }, 'เปลี่ยนหมวดเรียบร้อย');
+}
+
+function fn_cancel_job() {
+  const reason = $('#x_reason').val().trim();
+  if (!reason) { $('#admin_error').text('กรุณากรอกเหตุผลการยกเลิก').removeClass('d-none'); $('#x_reason').trigger('focus'); return; }
+  if (!confirm('ยืนยันยกเลิกใบงาน ' + jb.detail.job.job_number + ' ?')) return;
+  fn_admin_action('btn_cancel', 'admin_cancel', { job_id: jb.detail.job.job_id, reason: reason }, 'ยกเลิกงานเรียบร้อย');
+}
+</script>

@@ -195,3 +195,35 @@ body.app-bare .main-footer { margin-left: 0 !important; }
 
 /* Select2 ให้ใช้ฟอนต์เดียวกับระบบ */
 .select2-container, .select2-dropdown, .select2-search__field { font-family: 'IBM Plex Sans Thai', 'Tahoma', sans-serif; }
+
+/* =========================================================
+ * ขั้นที่ 4 : เจ้าหน้าที่ (jb-*)
+ * ========================================================= */
+.staff-avatar { background: #ece6f8; color: #6b4fbb; }
+.staff-login-icon { background: #3d3d5c; }
+
+.jb-tabs .nav-link { border-radius: 999px; padding: .35rem .9rem; margin-right: .35rem; }
+.jb-tabs .nav-link .badge { margin-left: .25rem; }
+.jb-tabs .nav-link:not(.active) { color: var(--app-ink); background: #fff; border: 1px solid var(--app-line); }
+
+#tb_jobs td { vertical-align: top; }
+.jb-short { max-width: 340px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.jb-label { color: var(--app-muted); font-size: .8rem; margin-bottom: .15rem; display: block; }
+.jb-detail { white-space: pre-wrap; background: #f6f8fb; border-radius: 8px; padding: 10px 12px; }
+
+.jb-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.jb-thumb { width: 96px; height: 96px; border-radius: 10px; border: 1px dashed var(--app-line); background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: var(--app-muted); font-size: .8rem; }
+.jb-thumb-img { border-style: solid; padding: 0; overflow: hidden; }
+.jb-thumb-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.jb-log { list-style: none; padding-left: 0; border-left: 2px solid var(--app-line); margin-left: 4px; }
+.jb-log li { padding: 0 0 10px 14px; position: relative; }
+.jb-log li::before { content: ''; position: absolute; left: -6px; top: 6px; width: 10px; height: 10px;
+  border-radius: 50%; background: var(--app-primary); }
+.jb-log-time { color: var(--app-muted); font-size: .8rem; margin-right: .25rem; }
+
+.jb-box { border: 1px solid var(--app-line); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.jb-box-danger { border-color: #f1c6c1; background: #fffafa; }

@@ -54,6 +54,37 @@ class Router {
       case 'create_job':
         return JobController.create(data, req);
 
+      // ===== ขั้นที่ 4 : เจ้าหน้าที่ =====
+      case 'staff_login':
+        return StaffAuthController.login(data);
+
+      case 'staff_request_otp':
+        return StaffAuthController.requestOtp(data);
+
+      case 'staff_set_password':
+        return StaffAuthController.setPassword(data);
+
+      case 'staff_me':
+        return StaffAuthController.me(req);
+
+      case 'staff_list_jobs':
+        return AdminController.listJobs(data, req);
+
+      case 'staff_job_detail':
+        return AdminController.jobDetail(data, req);
+
+      case 'staff_get_file':
+        return AdminController.getFile(data, req);
+
+      case 'admin_change_category':
+        return AdminController.changeCategory(data, req);
+
+      case 'admin_assign':
+        return AdminController.assign(data, req);
+
+      case 'admin_cancel':
+        return AdminController.cancel(data, req);
+
       case 'user_me':
         return AuthController.userMe(req);
 

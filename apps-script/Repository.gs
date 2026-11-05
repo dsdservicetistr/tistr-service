@@ -111,6 +111,10 @@ class StaffRepository extends SheetRepository {
   findActive() {
     return this.findBy('active', '1');
   }
+
+  findAdmins() {
+    return this.findActive().filter(s => String(s.role) === 'admin');
+  }
 }
 
 /* ---------- หน่วยงาน (ใช้สรุปรายปี / Dashboard) ---------- */

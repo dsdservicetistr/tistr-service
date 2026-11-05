@@ -10,6 +10,11 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  // คำสั่งของเจ้าหน้าที่ใช้ token ของ StaffSession
+  static isStaffFlg(flg) {
+    return /^(staff_|admin_)/.test(flg);
+  }
+
   async call(flg, data = {}) {
     if (!this.baseUrl || this.baseUrl.indexOf('วาง_') > -1) {
       throw new Error('ยังไม่ได้ตั้งค่า API_URL ใน js/config.js');
@@ -18,7 +23,7 @@ class ApiClient {
     const body = JSON.stringify({
       flg: flg,
       data: data,
-      token: Session.token()
+      token: ApiClient.isStaffFlg(flg) ? StaffSession.token() : Session.token()
     });
 
     let res;
@@ -43,6 +48,10 @@ class ApiClient {
       if (json.code === 'AUTH_REQUIRED') {
         Session.clear();
         if (typeof App !== 'undefined') App.goLogin();
+      }
+      if (json.code === 'STAFF_AUTH_REQUIRED') {
+        StaffSession.clear();
+        if (typeof App !== 'undefined') App.goStaffLogin();
       }
       const err = new Error(json.message || 'เกิดข้อผิดพลาด');
       err.code = json.code;

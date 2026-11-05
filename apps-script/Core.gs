@@ -125,6 +125,35 @@ const Util = {
     return folder;
   },
 
+  // กันข้อความจากผู้ใช้กลายเป็น HTML ในอีเมล
+  esc: function (text) {
+    return String(text === undefined || text === null ? '' : text)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  },
+
+  // hash รหัสผ่านเจ้าหน้าที่ (ทำซ้ำหลายรอบให้เดายากขึ้น)
+  hashPassword: function (salt, password) {
+    let h = String(salt) + '|' + String(password);
+    for (let i = 0; i < CONFIG.STAFF_LOGIN.HASH_ROUNDS; i++) h = Util.sha256(salt + h);
+    return 'v1$' + CONFIG.STAFF_LOGIN.HASH_ROUNDS + '$' + h;
+  },
+
+  // somchai@tistr.or.th -> so****@tistr.or.th
+  maskEmail: function (email) {
+    const e = String(email || '');
+    const at = e.indexOf('@');
+    if (at < 1) return e;
+    return e.slice(0, Math.min(2, at)) + '****' + e.slice(at);
+  },
+
+  // ลิงก์แชร์ Google Drive -> ลิงก์รูปที่แสดงบนเว็บได้
+  photoUrl: function (url) {
+    const u = String(url || '').trim();
+    if (!u) return '';
+    const m = u.match(/\/d\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/);
+    return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400' : u;
+  },
+
   // ตัดฟิลด์ภายใน (_row) ออกก่อนส่งให้หน้าเว็บ
   clean: function (obj) {
     if (!obj) return obj;

@@ -1,0 +1,187 @@
+<div class="login-wrap">
+  <div class="login-card card">
+    <div class="card-body">
+
+      <div class="login-head">
+        <div class="login-icon staff-login-icon"><i class="fas fa-user-shield"></i></div>
+        <h2 class="login-title">เข้าสู่ระบบเจ้าหน้าที่</h2>
+        <p class="login-sub">สำหรับ Admin และผู้ปฏิบัติงาน สทส.</p>
+      </div>
+
+      <!-- เข้าสู่ระบบ -->
+      <form id="panel_login" novalidate onsubmit="fn_staff_login(); return false;">
+        <div class="form-group">
+          <label for="s_ad_name">ชื่อผู้ใช้ (AD)</label>
+          <input type="text" id="s_ad_name" class="form-control" autocomplete="username"
+                 autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label for="s_password">รหัสผ่าน</label>
+          <input type="password" id="s_password" class="form-control" autocomplete="current-password">
+        </div>
+
+        <div class="alert alert-danger d-none" id="login_error"></div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn_staff_login">
+          <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ
+        </button>
+        <div class="d-flex justify-content-between small mt-3">
+          <a href="#" onclick="fn_forgot(); return false;">ลืมรหัสผ่าน / ตั้งรหัสครั้งแรก</a>
+          <a href="index.html?MM=login" class="text-muted">กลับหน้าผู้ใช้</a>
+        </div>
+      </form>
+
+      <!-- ยืนยันส่ง OTP -->
+      <div id="panel_need" class="mismatch d-none">
+        <div class="mismatch-icon otp-icon"><i class="fas fa-key"></i></div>
+        <h3 class="mismatch-title" id="need_title">ตั้งรหัสผ่านครั้งแรก</h3>
+        <p class="mismatch-text">ระบบจะส่งรหัส OTP ไปที่ <strong class="js-mail-masked"></strong> เพื่อยืนยันตัวตนก่อนตั้งรหัสผ่าน</p>
+        <button type="button" class="btn btn-primary btn-block" id="btn_send_otp" onclick="fn_send_otp()">
+          <i class="fas fa-envelope"></i> ส่งรหัส OTP
+        </button>
+        <button type="button" class="btn btn-link btn-block text-muted" onclick="fn_show('panel_login')">ย้อนกลับ</button>
+        <div class="alert alert-danger d-none mt-2 mb-0" id="need_error"></div>
+      </div>
+
+      <!-- กรอก OTP + ตั้งรหัสใหม่ -->
+      <form id="panel_set" class="d-none" novalidate onsubmit="fn_set_password(); return false;">
+        <p class="text-muted small text-center">ส่งรหัส 6 หลักไปที่ <strong class="js-mail-masked"></strong> แล้ว</p>
+        <div class="form-group">
+          <label for="s_otp">รหัส OTP</label>
+          <input type="text" id="s_otp" class="form-control otp-input" inputmode="numeric" maxlength="6"
+                 autocomplete="one-time-code" placeholder="••••••">
+        </div>
+        <div class="form-group">
+          <label for="s_new">รหัสผ่านใหม่</label>
+          <input type="password" id="s_new" class="form-control" autocomplete="new-password">
+          <small class="text-muted" id="pw_rule">อย่างน้อย 8 ตัว มีทั้งตัวอักษรและตัวเลข</small>
+        </div>
+        <div class="form-group">
+          <label for="s_confirm">ยืนยันรหัสผ่านใหม่</label>
+          <input type="password" id="s_confirm" class="form-control" autocomplete="new-password">
+        </div>
+
+        <div class="alert alert-danger d-none" id="set_error"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="btn_set">
+          <i class="fas fa-check"></i> ตั้งรหัสผ่านและเข้าสู่ระบบ
+        </button>
+        <button type="button" class="btn btn-link btn-block" id="btn_resend" onclick="fn_send_otp()" disabled>ขอรหัสใหม่</button>
+        <button type="button" class="btn btn-link btn-block text-muted" onclick="fn_show('panel_login')">ยกเลิก</button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script>
+var staff_state = { ad_name: '', timer: null, pwMin: 8 };
+
+function fn_show(id) {
+  $('#panel_login, #panel_need, #panel_set').addClass('d-none');
+  $('#' + id).removeClass('d-none');
+  $('.alert-danger').addClass('d-none');
+  if (id === 'panel_login') clearInterval(staff_state.timer);
+}
+
+function fn_err(id, msg) {
+  $('#' + id).text(msg).removeClass('d-none');
+}
+
+$('#s_ad_name').trigger('focus');
+
+async function fn_staff_login() {
+  const ad = $('#s_ad_name').val().trim();
+  const pw = $('#s_password').val();
+  if (!ad) { fn_err('login_error', 'กรุณากรอกชื่อผู้ใช้'); $('#s_ad_name').trigger('focus'); return; }
+
+  const $b = $('#btn_staff_login').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...');
+  $('#login_error').addClass('d-none');
+  staff_state.ad_name = ad;
+  try {
+    const d = await api.call('staff_login', { ad_name: ad, password: pw });
+    if (d.result === 'need_setup') {
+      $('.js-mail-masked').text(d.email_masked);
+      $('#need_title').text('ตั้งรหัสผ่านครั้งแรก');
+      fn_show('panel_need');
+      return;
+    }
+    fn_staff_done(d);
+  } catch (err) {
+    fn_err('login_error', err.message);
+    $('#s_password').val('').trigger('focus');
+  } finally {
+    $b.prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ');
+  }
+}
+
+// ลืมรหัส : ใช้ชื่อผู้ใช้ที่กรอกไว้
+function fn_forgot() {
+  const ad = $('#s_ad_name').val().trim();
+  if (!ad) { fn_err('login_error', 'กรอกชื่อผู้ใช้ก่อน แล้วกด "ลืมรหัสผ่าน" อีกครั้ง'); $('#s_ad_name').trigger('focus'); return; }
+  staff_state.ad_name = ad;
+  $('.js-mail-masked').text('อีเมลที่ลงทะเบียนไว้');
+  $('#need_title').text('ตั้งรหัสผ่านใหม่');
+  fn_show('panel_need');
+}
+
+async function fn_send_otp() {
+  $('#btn_send_otp, #btn_resend').prop('disabled', true);
+  $('#need_error, #set_error').addClass('d-none');
+  try {
+    const d = await api.call('staff_request_otp', { ad_name: staff_state.ad_name });
+    $('.js-mail-masked').text(d.email_masked);
+    staff_state.pwMin = d.password_min;
+    $('#pw_rule').text('อย่างน้อย ' + d.password_min + ' ตัว มีทั้งตัวอักษรและตัวเลข');
+    fn_show('panel_set');
+    $('#s_otp').val('').trigger('focus');
+    fn_resend_timer(d.resend_seconds);
+  } catch (err) {
+    if ($('#panel_set').hasClass('d-none')) { fn_err('need_error', err.message); $('#btn_send_otp').prop('disabled', false); }
+    else { fn_err('set_error', err.message); $('#btn_resend').prop('disabled', false); }
+  }
+}
+
+function fn_resend_timer(sec) {
+  clearInterval(staff_state.timer);
+  let left = sec;
+  const $r = $('#btn_resend').prop('disabled', true).text('ขอรหัสใหม่ได้ใน ' + left + ' วินาที');
+  staff_state.timer = setInterval(function () {
+    left--;
+    if (left <= 0) { clearInterval(staff_state.timer); $r.prop('disabled', false).text('ขอรหัสใหม่'); }
+    else $r.text('ขอรหัสใหม่ได้ใน ' + left + ' วินาที');
+  }, 1000);
+}
+
+$('#s_otp').on('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); });
+
+async function fn_set_password() {
+  const otp = $('#s_otp').val().trim();
+  const pw  = $('#s_new').val();
+  if (!/^\d{6}$/.test(otp)) { fn_err('set_error', 'กรุณากรอกรหัส OTP 6 หลัก'); $('#s_otp').trigger('focus'); return; }
+  if (pw.length < staff_state.pwMin || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
+    fn_err('set_error', $('#pw_rule').text()); $('#s_new').trigger('focus'); return;
+  }
+  if (pw !== $('#s_confirm').val()) { fn_err('set_error', 'ยืนยันรหัสผ่านไม่ตรงกัน'); $('#s_confirm').trigger('focus'); return; }
+
+  const $b = $('#btn_set').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
+  try {
+    const d = await api.call('staff_set_password', { ad_name: staff_state.ad_name, otp: otp, password: pw });
+    clearInterval(staff_state.timer);
+    fn_staff_done(d);
+  } catch (err) {
+    fn_err('set_error', err.message);
+    if (['OTP_LOCKED', 'OTP_EXPIRED', 'OTP_INVALID'].indexOf(err.code) > -1) {
+      clearInterval(staff_state.timer);
+      $('#btn_resend').prop('disabled', false).text('ขอรหัสใหม่');
+    }
+  } finally {
+    $b.prop('disabled', false).html('<i class="fas fa-check"></i> ตั้งรหัสผ่านและเข้าสู่ระบบ');
+  }
+}
+
+function fn_staff_done(d) {
+  StaffSession.save(d.token, d.staff);
+  App.go('jobs');
+}
+</script>

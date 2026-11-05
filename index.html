@@ -16,6 +16,8 @@
   <!-- Select2 (ช่องเลือกแบบพิมพ์ค้นหา) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-bs4@1.13.8/css/dataTables.bootstrap4.min.css">
   <!-- CSS ของระบบ -->
   <link rel="stylesheet" href="css/app.css">
 </head>
@@ -44,6 +46,7 @@
     </a>
 
     <div class="sidebar">
+      <!-- ผู้ใช้ทั่วไป -->
       <div class="user-panel mt-3 pb-3 mb-2 d-flex align-items-center js-user-box d-none">
         <div class="user-avatar"><i class="fas fa-user"></i></div>
         <div class="info">
@@ -52,22 +55,47 @@
         </div>
       </div>
 
+      <!-- เจ้าหน้าที่ -->
+      <div class="user-panel mt-3 pb-3 mb-2 d-flex align-items-center js-staff-menu d-none">
+        <div class="user-avatar staff-avatar"><i class="fas fa-user-shield"></i></div>
+        <div class="info">
+          <span class="d-block user-email js-staff-name"></span>
+          <span class="badge badge-light js-staff-role"></span>
+          <a href="#" class="small text-danger ml-1" onclick="App.staffLogout(); return false;">ออกจากระบบ</a>
+        </div>
+      </div>
+
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
 
-          <li class="nav-header">เมนูผู้ใช้งาน</li>
-          <li class="nav-item">
+          <li class="nav-header js-user-menu">เมนูผู้ใช้งาน</li>
+          <li class="nav-item js-user-menu">
             <a href="index.html?MM=1" class="nav-link" data-mm="1">
               <i class="nav-icon fas fa-headset text-primary"></i>
               <p>ขอรับบริการ</p>
             </a>
           </li>
 
-          <li class="nav-header">สำหรับผู้พัฒนา</li>
-          <li class="nav-item">
+          <li class="nav-header js-staff-menu d-none">เจ้าหน้าที่</li>
+          <li class="nav-item js-staff-menu d-none">
+            <a href="index.html?MM=jobs" class="nav-link" data-mm="jobs">
+              <i class="nav-icon fas fa-clipboard-list text-primary"></i>
+              <p>รายการงาน</p>
+            </a>
+          </li>
+
+          <li class="nav-header js-admin-menu d-none">สำหรับผู้พัฒนา</li>
+          <li class="nav-item js-admin-menu d-none">
             <a href="index.html?MM=99" class="nav-link" data-mm="99">
               <i class="nav-icon fas fa-plug text-secondary"></i>
               <p>ทดสอบระบบ</p>
+            </a>
+          </li>
+
+          <li class="nav-item js-staff-login-link mt-3">
+            <a href="index.html?MM=staff_login" class="nav-link" data-mm="staff_login">
+              <i class="nav-icon fas fa-user-shield text-muted"></i>
+              <p class="text-muted">สำหรับเจ้าหน้าที่</p>
             </a>
           </li>
 
@@ -100,10 +128,13 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables.net-bs4@1.13.8/js/dataTables.bootstrap4.min.js"></script>
 
 <!-- ระบบ (ลำดับสำคัญ: config > Session > ApiClient > app) -->
 <script src="js/config.js"></script>
 <script src="js/core/Session.js"></script>
+<script src="js/core/Fmt.js"></script>
 <script src="js/core/ApiClient.js"></script>
 <script src="js/app.js"></script>
 </body>
