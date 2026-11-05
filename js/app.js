@@ -48,7 +48,7 @@ class App {
     $('.nav-sidebar .nav-link[data-mm="' + key + '"]').addClass('active');
     $('#page-title').text(route.bare ? '' : route.title);
 
-    $('#page-content').load(route.page, function (response, status) {
+    $('#page-content').load(route.page + '?v=' + Date.now(), function (response, status) {
       if (status === 'error') {
         $('#page-content').html(
           '<div class="alert alert-danger">โหลดหน้า ' + route.page + ' ไม่สำเร็จ ' +
