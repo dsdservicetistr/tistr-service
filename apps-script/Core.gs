@@ -107,6 +107,24 @@ const Util = {
     return String(Util.fiscalYearBE(date)).slice(-2);
   },
 
+  // ตรวจข้อความจากฟอร์ม : ตัดช่องว่าง, บังคับกรอก, จำกัดความยาว
+  text: function (value, label, maxLen, required) {
+    const v = String(value === undefined || value === null ? '' : value).trim();
+    if (required && v === '') throw new AppError('กรุณากรอก' + label, 'REQUIRED');
+    if (v.length > maxLen) throw new AppError(label + ' ยาวเกิน ' + maxLen + ' ตัวอักษร', 'TOO_LONG');
+    return v;
+  },
+
+  // โฟลเดอร์เก็บไฟล์แนบใน Google Drive (สร้างให้อัตโนมัติครั้งแรก แล้วจำ ID ไว้)
+  uploadFolder: function () {
+    const props = PropertiesService.getScriptProperties();
+    const id = props.getProperty('UPLOAD_FOLDER_ID');
+    if (id) return DriveApp.getFolderById(id);
+    const folder = DriveApp.createFolder('tistr-service-uploads');
+    props.setProperty('UPLOAD_FOLDER_ID', folder.getId());
+    return folder;
+  },
+
   // ตัดฟิลด์ภายใน (_row) ออกก่อนส่งให้หน้าเว็บ
   clean: function (obj) {
     if (!obj) return obj;

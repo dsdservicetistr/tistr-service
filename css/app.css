@@ -85,3 +85,105 @@ body.app-bare .main-footer { margin-left: 0 !important; }
   font-size: 1.6rem; letter-spacing: .6em; text-align: center;
   padding-left: .6em; height: calc(1.5em + 1rem + 2px);
 }
+
+/* =========================================================
+ * ขั้นที่ 3 : หน้าเลือกบริการ (sv-*)
+ * ========================================================= */
+.sv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.sv-card {
+  --cat-color: #2f6fb5;
+  position: relative;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--app-line);
+  border-radius: 14px;
+  padding: 18px;
+  color: var(--app-ink);
+  cursor: pointer;
+  animation: sv-rise .4s ease-out backwards;
+  transition: transform .25s ease, opacity .25s ease, border-color .2s ease;
+}
+.sv-card:hover { transform: translateY(-4px); border-color: var(--cat-color); }
+.sv-card:focus-visible { outline: 2px solid var(--cat-color); outline-offset: 2px; }
+.sv-ico {
+  width: 48px; height: 48px; border-radius: 14px; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.35rem;
+  color: #fff; background: var(--cat-color);
+}
+.sv-name { font-weight: 600; font-size: 1.05rem; line-height: 1.35; }
+.sv-desc { color: var(--app-muted); font-size: .88rem; margin-top: 2px; }
+.sv-link-mark { position: absolute; top: 14px; right: 14px; color: var(--app-muted); font-size: .8rem; }
+
+.sv-grid.has-pick .sv-card { opacity: .4; transform: scale(.97); }
+.sv-grid.has-pick .sv-card.on { opacity: 1; transform: scale(1.03); border: 2px solid var(--cat-color); }
+.sv-card.on .sv-ico { animation: sv-pop .5s cubic-bezier(.34, 1.56, .64, 1); }
+
+.sv-sub { max-height: 0; overflow: hidden; transition: max-height .45s ease; }
+.sv-sub.open { max-height: 700px; }
+.sv-sub-title { color: var(--app-muted); margin: 18px 0 4px; }
+.sv-sub-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.sv-chip {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  background: #fff; border: 1px solid var(--app-line); border-radius: 10px;
+  padding: 12px 14px; color: var(--app-ink); cursor: pointer;
+  opacity: 0; transform: translateY(12px);
+  transition: opacity .3s ease, transform .3s ease, border-color .2s ease;
+}
+.sv-sub.open .sv-chip { opacity: 1; transform: none; }
+.sv-chip:hover { border-color: var(--app-primary); }
+.sv-chip.on { border: 2px solid var(--app-primary); background: #eef4fb; }
+.sv-chip-name { font-weight: 500; }
+.sv-chip-desc { color: var(--app-muted); font-size: .85rem; }
+.sv-check { margin-left: auto; color: var(--app-primary); font-size: 1.2rem; transform: scale(0);
+  transition: transform .3s cubic-bezier(.34, 1.56, .64, 1); }
+.sv-chip.on .sv-check { transform: scale(1); }
+
+/* ฟอร์ม */
+.sv-form-card { max-width: 860px; border-radius: 14px; }
+.sv-chosen { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--app-line); }
+.sv-chosen-ico { --cat-color: #2f6fb5; width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; color: #fff; background: var(--cat-color); font-size: 1.2rem; }
+.sv-chosen-name { font-weight: 600; font-size: 1.1rem; }
+.sv-section { padding: 16px 0 6px; }
+.sv-section-title { font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+.sv-profile { background: #f6f8fb; border-radius: 10px; padding: 12px 14px; }
+.sv-profile-name { font-weight: 500; }
+
+.sv-files { display: flex; flex-wrap: wrap; gap: 10px; }
+.sv-file, .sv-file-add { width: 96px; height: 96px; border-radius: 10px; position: relative; }
+.sv-file img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid var(--app-line); }
+.sv-file-del { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%;
+  border: 0; background: #c0392b; color: #fff; font-size: 1rem; line-height: 1; }
+.sv-file-add { border: 2px dashed var(--app-line); color: var(--app-muted); cursor: pointer; margin: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: .85rem; }
+.sv-file-add:hover { border-color: var(--app-primary); color: var(--app-primary); }
+
+/* สำเร็จ */
+.sv-done-card { max-width: 520px; margin: 0 auto; border-radius: 14px; }
+.sv-done-card .card-body { padding: 2rem 1.5rem; }
+.sv-done-icon { width: 72px; height: 72px; margin: 0 auto 1rem; border-radius: 50%; background: #28a745; color: #fff;
+  font-size: 2rem; display: flex; align-items: center; justify-content: center;
+  animation: sv-pop .6s cubic-bezier(.34, 1.56, .64, 1); }
+.sv-done-title { font-size: 1.4rem; font-weight: 600; }
+.sv-done-number { font-size: 2rem; font-weight: 600; letter-spacing: .05em; color: var(--app-primary); margin-bottom: .5rem; }
+
+.sv-slide-in { animation: sv-rise .35s ease-out; }
+
+@keyframes sv-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes sv-pop { 0% { transform: scale(1); } 40% { transform: scale(1.22) rotate(-8deg); } 100% { transform: scale(1); } }
+
+@media (max-width: 576px) {
+  .sv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sv-card { padding: 14px; }
+  .sv-ico { width: 40px; height: 40px; font-size: 1.1rem; }
+  .sv-name { font-size: .95rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-card, .sv-chip, .sv-sub, .sv-check { transition: none; }
+  .sv-card, .sv-card.on .sv-ico, .sv-done-icon, .sv-slide-in { animation: none; }
+}

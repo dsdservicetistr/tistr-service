@@ -78,8 +78,15 @@ class SheetRepository {
     return obj;
   }
 
+  // ใส่ ' นำหน้าทุกค่า ให้ชีตเก็บเป็นข้อความเสมอ
+  //  - เบอร์ 0123 ไม่กลายเป็น 123 แม้แถวเกินช่วงที่ตั้ง format ไว้
+  //  - ข้อความที่ขึ้นต้นด้วย = + - @ ไม่ถูกตีความเป็นสูตร (กัน formula injection)
+  //  ชีตจะไม่เก็บ ' ไว้ในค่า อ่านกลับมาได้ข้อความเดิม
   _toRow(obj) {
-    return this.headers.map(h => (obj[h] === undefined || obj[h] === null) ? '' : String(obj[h]));
+    return this.headers.map(h => {
+      const v = (obj[h] === undefined || obj[h] === null) ? '' : String(obj[h]);
+      return v === '' ? '' : "'" + v;
+    });
   }
 }
 
@@ -136,6 +143,11 @@ class StatusRepository extends SheetRepository {
 /* ---------- ใบงาน ---------- */
 class JobRepository extends SheetRepository {
   constructor() { super(CONFIG.SHEETS.JOBS); }
+
+  findByUser(userId) {
+    return this.findBy('user_id', userId)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  }
 
   // เลขใบงานถัดไป นับใหม่ทุกปีงบ เช่น 0001/70
   // (ตอนบันทึกจริงต้องครอบด้วย LockService กันเลขซ้ำ - จะทำในขั้นแจ้งงาน)

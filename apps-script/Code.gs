@@ -50,6 +50,10 @@ class Router {
       case 'user_verify_otp':
         return AuthController.userVerifyOtp(data);
 
+      // ===== ขั้นที่ 3 : แจ้งขอรับบริการ =====
+      case 'create_job':
+        return JobController.create(data, req);
+
       case 'user_me':
         return AuthController.userMe(req);
 

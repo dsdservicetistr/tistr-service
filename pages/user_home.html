@@ -1,47 +1,427 @@
-<div class="row">
-  <div class="col-lg-7">
-    <div class="card card-primary card-outline">
-      <div class="card-header">
-        <h3 class="card-title" id="home_greeting">ยินดีต้อนรับ</h3>
+<!-- ===== ขั้น A : เลือกประเภทบริการ ===== -->
+<div id="step_pick">
+  <p class="text-muted mb-3">ต้องการรับบริการด้านไหน เลือกหมวดที่ใกล้เคียงที่สุด เจ้าหน้าที่จะตรวจสอบและปรับให้ถูกต้องอีกครั้ง</p>
+
+  <div id="cat_grid" class="sv-grid">
+    <div class="text-muted"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดรายการบริการ...</div>
+  </div>
+
+  <div id="sub_panel" class="sv-sub" aria-live="polite">
+    <p class="sv-sub-title" id="sub_title"></p>
+    <div id="sub_list" class="sv-sub-list"></div>
+  </div>
+
+  <div class="alert alert-danger d-none mt-3" id="pick_error"></div>
+</div>
+
+<!-- ===== ขั้น B : กรอกรายละเอียด ===== -->
+<div id="step_form" class="d-none">
+  <div class="card card-primary card-outline sv-form-card">
+    <div class="card-body">
+
+      <div class="sv-chosen">
+        <div class="sv-chosen-ico" id="chosen_icon"></div>
+        <div class="flex-grow-1">
+          <div class="sv-chosen-name" id="chosen_name"></div>
+          <div class="text-muted small" id="chosen_sub"></div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fn_back_to_pick()">
+          <i class="fas fa-exchange-alt"></i> เปลี่ยน
+        </button>
       </div>
-      <div class="card-body">
-        <div id="home_new_badge" class="alert alert-info d-none">
-          <i class="fas fa-user-plus"></i> สร้างบัญชีใหม่เรียบร้อย ครั้งแรกที่แจ้งงาน ระบบจะขอชื่อ หน่วยงาน และห้องเพิ่ม
+
+      <form id="form_job" novalidate onsubmit="fn_submit_job(); return false;">
+
+        <!-- ข้อมูลผู้แจ้ง -->
+        <div class="sv-section">
+          <div class="d-flex align-items-center mb-2">
+            <h3 class="sv-section-title mb-0">ข้อมูลผู้แจ้ง</h3>
+            <a href="#" class="ml-auto small d-none" id="btn_edit_profile" onclick="fn_edit_profile(); return false;">แก้ไข</a>
+          </div>
+
+          <div id="profile_view" class="sv-profile d-none"></div>
+
+          <div id="profile_edit">
+            <p class="text-muted small mb-2" id="profile_hint">กรอกครั้งแรกครั้งเดียว ครั้งต่อไประบบจะจำไว้ให้</p>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="f_full_name">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="f_full_name" maxlength="100" autocomplete="name">
+                <small class="field-error" id="err_full_name"></small>
+              </div>
+              <div class="form-group col-md-6">
+                <label for="f_position">ตำแหน่ง</label>
+                <input type="text" class="form-control" id="f_position" maxlength="100">
+              </div>
+              <div class="form-group col-md-6">
+                <label for="f_division">หน่วยงาน <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="f_division" maxlength="150" placeholder="เช่น กพท. สทส.">
+                <small class="field-error" id="err_division"></small>
+              </div>
+              <div class="form-group col-md-6">
+                <label for="f_room">ห้อง / อาคาร <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="f_room" maxlength="100" placeholder="เช่น อาคาร 2 ห้อง 204">
+                <small class="field-error" id="err_room"></small>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <table class="table table-sm kv-table mb-3">
-          <tr><td>อีเมล</td><td id="home_email">-</td></tr>
-          <tr><td>เบอร์โทรภายใน</td><td id="home_phone">-</td></tr>
-          <tr><td>สถานะการเข้าสู่ระบบ</td><td id="home_check"><i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบกับเซิร์ฟเวอร์</td></tr>
-        </table>
+        <!-- รายละเอียด -->
+        <div class="sv-section">
+          <h3 class="sv-section-title">รายละเอียดปัญหา</h3>
 
-        <p class="text-muted mb-0">ขั้นที่ 3 หน้าเลือกประเภทบริการจะอยู่ตรงนี้</p>
-      </div>
+          <div class="form-group">
+            <label for="f_detail">อาการ / สิ่งที่ต้องการ <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="f_detail" rows="4" maxlength="2000"></textarea>
+            <div class="d-flex">
+              <small class="field-error flex-grow-1" id="err_detail"></small>
+              <small class="text-muted" id="detail_count">0/2000</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="f_location">สถานที่ให้ไปดำเนินการ <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="f_location" maxlength="200">
+              <small class="field-error" id="err_location"></small>
+            </div>
+            <div class="form-group col-md-6" id="asset_group">
+              <label for="f_asset_no">เลขครุภัณฑ์ <span class="text-muted small">(ถ้ามี)</span></label>
+              <input type="text" class="form-control" id="f_asset_no" maxlength="50">
+            </div>
+          </div>
+
+          <div class="form-group mb-0">
+            <label>แนบรูป <span class="text-muted small">(ไม่เกิน 3 รูป เช่น หน้าจอที่ขึ้น error)</span></label>
+            <div class="sv-files" id="file_list">
+              <label class="sv-file-add" for="f_files" id="file_add">
+                <i class="fas fa-camera"></i>
+                <span>เพิ่มรูป</span>
+              </label>
+            </div>
+            <input type="file" id="f_files" accept="image/*" multiple class="d-none">
+            <small class="field-error" id="err_files"></small>
+          </div>
+        </div>
+
+        <div class="alert alert-danger d-none" id="submit_error"></div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="btn_submit">
+          <i class="fas fa-paper-plane"></i> ส่งเรื่องขอรับบริการ
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ขั้น C : ส่งสำเร็จ ===== -->
+<div id="step_done" class="d-none">
+  <div class="card sv-done-card">
+    <div class="card-body text-center">
+      <div class="sv-done-icon"><i class="fas fa-check"></i></div>
+      <h2 class="sv-done-title">ส่งเรื่องเรียบร้อย</h2>
+      <p class="text-muted mb-1">เลขที่ใบงาน</p>
+      <div class="sv-done-number" id="done_number"></div>
+      <p class="mb-2" id="done_cat"></p>
+      <span class="badge" id="done_status"></span>
+      <p class="text-muted small mt-3 mb-4">
+        เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันรายละเอียด เมื่อมอบหมายผู้รับผิดชอบแล้ว ระบบจะแสดงชื่อและเบอร์ติดต่อให้
+      </p>
+      <button type="button" class="btn btn-outline-primary" onclick="fn_new_request()">
+        <i class="fas fa-plus"></i> แจ้งเรื่องใหม่
+      </button>
     </div>
   </div>
 </div>
 
 <script>
+var sv = {
+  master: null,
+  cat: null,
+  sub: null,
+  files: []          // [{ name, type, data, url }]
+};
+
+/* ---------- โหลดข้อมูลตั้งต้น ---------- */
 (async function () {
-  const cached = Session.user() || {};
-  $('#home_email').text(cached.email || '-');
-  $('#home_phone').text(cached.phone4 || '-');
-
-  if (sessionStorage.getItem('welcome_new') === '1') {
-    $('#home_new_badge').removeClass('d-none');
-    sessionStorage.removeItem('welcome_new');
-  }
-
   try {
-    const d = await api.call('user_me');
-    Session.setUser(d.user);
+    const [master, me] = await Promise.all([api.call('get_master'), api.call('user_me')]);
+    sv.master = master;
+    Session.setUser(me.user);
     App.renderUserBox();
-    $('#home_greeting').text('ยินดีต้อนรับ ' + (d.user.full_name || d.user.email));
-    $('#home_email').text(d.user.email);
-    $('#home_phone').text(d.user.phone4);
-    $('#home_check').html('<span class="text-success"><i class="fas fa-check-circle"></i> token ใช้งานได้</span>');
+    fn_render_cats();
   } catch (err) {
-    $('#home_check').empty().append($('<span class="text-danger">').text(err.message));
+    $('#cat_grid').empty();
+    $('#pick_error').text(err.message).removeClass('d-none');
   }
 })();
+
+function fn_render_cats() {
+  const $grid = $('#cat_grid').empty();
+  sv.master.categories.forEach(function (cat, i) {
+    const $card = $('<button type="button" class="sv-card">')
+      .css('--cat-color', cat.color || '#2f6fb5')
+      .css('animation-delay', (i * 60) + 'ms');
+
+    $card.append(
+      $('<div class="sv-ico">').append($('<i>').addClass(cat.icon)),
+      $('<div class="sv-name">').text(cat.cat_name),
+      $('<div class="sv-desc">').text(cat.cat_desc || '')
+    );
+    if (cat.link_url) {
+      $card.append('<i class="fas fa-external-link-alt sv-link-mark" aria-hidden="true"></i>');
+    }
+    $card.on('click', function () { fn_pick_cat(cat, $card); });
+    $grid.append($card);
+  });
+}
+
+/* ---------- เลือกหมวด ---------- */
+function fn_pick_cat(cat, $card) {
+  $('#pick_error').addClass('d-none');
+
+  // หมวดที่ให้บริการผ่านระบบอื่น (เช่น ขอยืม Notebook) -> เปิดลิงก์
+  const link = String(cat.link_url || '');
+  if (link !== '') {
+    if (/^https?:\/\//i.test(link)) {
+      window.open(link, '_blank', 'noopener');
+    } else {
+      $('#pick_error').text('ยังไม่ได้ตั้งลิงก์ของ "' + cat.cat_name + '" กรุณาติดต่อ สทส.').removeClass('d-none');
+    }
+    return;
+  }
+
+  sv.cat = cat;
+  sv.sub = null;
+
+  const $grid = $('#cat_grid').addClass('has-pick');
+  $grid.children().removeClass('on');
+  void $card[0].offsetWidth;            // เริ่ม animation ใหม่ทุกครั้งที่กด
+  $card.addClass('on');
+
+  const subs = sv.master.sub_types.filter(s => String(s.cat_id) === String(cat.cat_id));
+  const $panel = $('#sub_panel').removeClass('open');
+  const $list = $('#sub_list').empty();
+
+  if (!subs.length) {
+    setTimeout(fn_go_form, 320);         // ไม่มีประเภทย่อย ไปกรอกรายละเอียดเลย
+    return;
+  }
+
+  $('#sub_title').text('เลือกประเภทย่อยของ ' + cat.cat_name);
+  subs.forEach(function (s, i) {
+    const $chip = $('<button type="button" class="sv-chip">').css('transition-delay', (i * 70) + 'ms');
+    const $text = $('<div>').append($('<div class="sv-chip-name">').text(s.sub_name));
+    if (s.sub_desc) $text.append($('<div class="sv-chip-desc">').text(s.sub_desc));
+    $chip.append($text, '<i class="fas fa-check-circle sv-check" aria-hidden="true"></i>');
+    $chip.on('click', function () {
+      $list.children().removeClass('on');
+      $chip.addClass('on');
+      sv.sub = s;
+      setTimeout(fn_go_form, 380);
+    });
+    $list.append($chip);
+  });
+
+  void $panel[0].offsetWidth;
+  requestAnimationFrame(() => $panel.addClass('open'));
+  setTimeout(function () {
+    $panel[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 200);
+}
+
+/* ---------- ไปหน้าฟอร์ม ---------- */
+function fn_go_form() {
+  const cat = sv.cat;
+  $('#chosen_icon').empty().append($('<i>').addClass(cat.icon)).css('--cat-color', cat.color || '#2f6fb5');
+  $('#chosen_name').text(cat.cat_name);
+  $('#chosen_sub').text(sv.sub ? sv.sub.sub_name : '');
+
+  // ช่องเลขครุภัณฑ์ แสดงเฉพาะหมวดตัวเครื่อง / อุปกรณ์ต่อพ่วง
+  $('#asset_group').toggle(['1', '6'].indexOf(String(cat.cat_id)) > -1);
+
+  const hint = (sv.sub && String(sv.sub.sub_desc || '').indexOf('ระบุ') > -1)
+    ? sv.sub.sub_desc + ' และอธิบายอาการที่พบ'
+    : 'อธิบายอาการที่พบ เช่น ขึ้นข้อความอะไร เริ่มเป็นตั้งแต่เมื่อไหร่';
+  $('#f_detail').attr('placeholder', hint);
+
+  fn_fill_profile();
+  $('#step_pick').addClass('d-none');
+  $('#step_form').removeClass('d-none sv-slide-in');
+  void $('#step_form')[0].offsetWidth;
+  $('#step_form').addClass('sv-slide-in');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function fn_back_to_pick() {
+  $('#step_form').addClass('d-none');
+  $('#step_pick').removeClass('d-none');
+  $('#cat_grid').removeClass('has-pick').children().removeClass('on');
+  $('#sub_panel').removeClass('open');
+}
+
+/* ---------- ข้อมูลผู้แจ้ง ---------- */
+function fn_fill_profile() {
+  const u = Session.user() || {};
+  $('#f_full_name').val(u.full_name || '');
+  $('#f_position').val(u.position || '');
+  $('#f_division').val(u.division || '');
+  $('#f_room').val(u.room || '');
+  if (!$('#f_location').val()) $('#f_location').val(u.room || '');
+
+  if (u.full_name && u.division && u.room) {
+    $('#profile_view').empty().append(
+      $('<div class="sv-profile-name">').text(u.full_name + (u.position ? ' (' + u.position + ')' : '')),
+      $('<div class="text-muted small">').text(u.division + ' · ' + u.room + ' · โทร ' + u.phone4)
+    ).removeClass('d-none');
+    $('#profile_edit').addClass('d-none');
+    $('#btn_edit_profile').removeClass('d-none');
+  } else {
+    $('#profile_view').addClass('d-none');
+    $('#profile_edit').removeClass('d-none');
+    $('#btn_edit_profile').addClass('d-none');
+  }
+}
+
+function fn_edit_profile() {
+  $('#profile_view').addClass('d-none');
+  $('#profile_edit').removeClass('d-none');
+  $('#profile_hint').text('แก้ไขข้อมูลแล้ว ระบบจะบันทึกให้ตอนส่งเรื่อง');
+  $('#btn_edit_profile').addClass('d-none');
+  $('#f_full_name').trigger('focus');
+}
+
+/* ---------- นับตัวอักษร / ล้าง error เมื่อพิมพ์ ---------- */
+$('#f_detail').on('input', function () {
+  $('#detail_count').text(this.value.length + '/2000');
+});
+$('#form_job').on('input', 'input, textarea', function () {
+  $('#err_' + this.id.replace('f_', '')).text('');
+});
+
+/* ---------- รูปแนบ : ย่อในเครื่องก่อนส่ง ---------- */
+$('#f_files').on('change', async function () {
+  $('#err_files').text('');
+  const picked = Array.from(this.files || []);
+  this.value = '';
+  for (const file of picked) {
+    if (sv.files.length >= 3) { $('#err_files').text('แนบได้ไม่เกิน 3 รูป'); break; }
+    if (!file.type.startsWith('image/')) { $('#err_files').text('แนบได้เฉพาะไฟล์รูป'); continue; }
+    try {
+      sv.files.push(await fn_resize_image(file, 1600, 0.82));
+    } catch (e) {
+      $('#err_files').text('อ่านไฟล์ ' + file.name + ' ไม่ได้');
+    }
+  }
+  fn_render_files();
+});
+
+function fn_resize_image(file, maxSide, quality) {
+  return new Promise(function (resolve, reject) {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function () {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';                       // PNG พื้นใส -> พื้นขาว
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      URL.revokeObjectURL(url);
+      resolve({ name: file.name, type: 'image/jpeg', data: dataUrl.split(',')[1], url: dataUrl });
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); reject(); };
+    img.src = url;
+  });
+}
+
+function fn_render_files() {
+  $('#file_list .sv-file').remove();
+  sv.files.forEach(function (f, i) {
+    const $item = $('<div class="sv-file">').append(
+      $('<img>').attr({ src: f.url, alt: 'รูปแนบที่ ' + (i + 1) }),
+      $('<button type="button" class="sv-file-del" aria-label="ลบรูปนี้">&times;</button>')
+        .on('click', function () { sv.files.splice(i, 1); fn_render_files(); })
+    );
+    $item.insertBefore('#file_add');
+  });
+  $('#file_add').toggle(sv.files.length < 3);
+}
+
+/* ---------- ส่งเรื่อง ---------- */
+function fn_validate_job() {
+  const rules = [
+    ['full_name', 'กรุณากรอกชื่อ-นามสกุล'],
+    ['division',  'กรุณากรอกหน่วยงาน'],
+    ['room',      'กรุณากรอกห้อง / อาคาร'],
+    ['detail',    'กรุณาอธิบายปัญหา'],
+    ['location',  'กรุณาระบุสถานที่']
+  ];
+  let first = null;
+  rules.forEach(function (r) {
+    if ($('#f_' + r[0]).val().trim() === '') {
+      $('#err_' + r[0]).text(r[1]);
+      if (!first) first = r[0];
+    }
+  });
+  if (first) {
+    if (['full_name', 'division', 'room'].indexOf(first) > -1) fn_edit_profile();
+    $('#f_' + first).trigger('focus');
+    return false;
+  }
+  return true;
+}
+
+async function fn_submit_job() {
+  $('#submit_error').addClass('d-none');
+  if (!fn_validate_job()) return;
+
+  const $b = $('#btn_submit').prop('disabled', true)
+    .html('<i class="fas fa-spinner fa-spin"></i> กำลังส่ง' + (sv.files.length ? ' และอัปโหลดรูป...' : '...'));
+
+  try {
+    const d = await api.call('create_job', {
+      cat_id: sv.cat.cat_id,
+      sub_id: sv.sub ? sv.sub.sub_id : '',
+      full_name: $('#f_full_name').val().trim(),
+      position: $('#f_position').val().trim(),
+      division: $('#f_division').val().trim(),
+      room: $('#f_room').val().trim(),
+      detail: $('#f_detail').val().trim(),
+      location: $('#f_location').val().trim(),
+      asset_no: $('#asset_group').is(':visible') ? $('#f_asset_no').val().trim() : '',
+      files: sv.files.map(f => ({ name: f.name, type: f.type, data: f.data }))
+    });
+
+    Session.setUser(d.user);
+    App.renderUserBox();
+
+    $('#done_number').text(d.job_number);
+    $('#done_cat').text(d.category + (d.sub_type ? ' > ' + d.sub_type : ''));
+    $('#done_status').attr('class', 'badge badge-' + d.status_color).text(d.status_text);
+    $('#step_form').addClass('d-none');
+    $('#step_done').removeClass('d-none sv-slide-in');
+    void $('#step_done')[0].offsetWidth;
+    $('#step_done').addClass('sv-slide-in');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    $('#submit_error').text(err.message).removeClass('d-none');
+  } finally {
+    $b.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> ส่งเรื่องขอรับบริการ');
+  }
+}
+
+function fn_new_request() {
+  sv.cat = null; sv.sub = null; sv.files = [];
+  $('#form_job')[0].reset();
+  $('#f_location').val('');
+  $('#detail_count').text('0/2000');
+  fn_render_files();
+  $('#step_done').addClass('d-none');
+  fn_back_to_pick();
+}
 </script>

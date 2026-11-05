@@ -14,6 +14,13 @@ const CONFIG = {
   SUPPORT_PHONE: '9356',          // เบอร์ติดต่อ สทส. ที่แสดงให้ User เห็น
   SESSION_DAYS_USER: 30,          // Soft login ของ User อยู่ได้กี่วัน
 
+  // ไฟล์แนบของใบงาน
+  UPLOAD: {
+    MAX_FILES: 3,
+    MAX_BYTES: 5 * 1024 * 1024,   // ต่อไฟล์ (หน้าเว็บย่อรูปก่อนส่งอยู่แล้ว)
+    TYPES: ['image/jpeg', 'image/png', 'image/webp']
+  },
+
   OTP: {
     LENGTH: 6,
     EXPIRE_MINUTES: 10,           // รหัสใช้ได้กี่นาที
@@ -34,7 +41,7 @@ const CONFIG = {
     },
     CATEGORIES: {
       name: 'categories',
-      headers: ['cat_id', 'cat_name', 'cat_desc', 'icon', 'color', 'sort', 'active']
+      headers: ['cat_id', 'cat_name', 'cat_desc', 'icon', 'color', 'sort', 'active', 'link_url']
     },
     SUB_TYPES: {
       name: 'sub_types',

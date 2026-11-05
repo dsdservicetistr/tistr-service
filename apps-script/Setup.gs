@@ -35,21 +35,8 @@ function setupSheets() {
     { status_number: '7', status_admin_thai: 'ยกเลิก',               status_user_thai: 'ยกเลิก',                              status_color: 'danger' }
   ]);
 
-  seedIfEmpty_(new CategoryRepository(), [
-    { cat_id: '1', cat_name: 'คอมพิวเตอร์และอุปกรณ์', cat_desc: 'เครื่อง โปรแกรม และเครื่องพิมพ์',      icon: 'fas fa-laptop',        color: '#2f6fb5', sort: '1', active: '1' },
-    { cat_id: '2', cat_name: 'Internet และเครือข่าย', cat_desc: 'เน็ตใช้ไม่ได้ หรือเครือข่ายขัดข้อง',     icon: 'fas fa-network-wired', color: '#1f8a70', sort: '2', active: '1' },
-    { cat_id: '3', cat_name: 'ระบบงานต่างๆ',         cat_desc: 'ระบบภายในองค์กร มีผู้ดูแลแต่ละระบบ',   icon: 'fas fa-th-large',      color: '#6b4fbb', sort: '3', active: '1' },
-    { cat_id: '4', cat_name: 'VDO Conference',       cat_desc: 'ติดตั้งกล้อง ห้องประชุมออนไลน์',       icon: 'fas fa-video',         color: '#c0582b', sort: '4', active: '1' },
-    { cat_id: '5', cat_name: 'ปัญหาการใช้งาน E-mail', cat_desc: 'รับส่งเมลไม่ได้ ลืมรหัส ตั้งค่าเมล',   icon: 'fas fa-envelope',      color: '#b23a62', sort: '5', active: '1' }
-  ]);
-
-  seedIfEmpty_(new SubTypeRepository(), [
-    { sub_id: '101', cat_id: '1', sub_name: 'Notebook เช่าตามโครงการ', sub_desc: 'มีสติกเกอร์รับประกัน SVOA ใต้เครื่อง', image_url: '', default_staff_id: '', is_routine: '0', sort: '1', active: '1' },
-    { sub_id: '102', cat_id: '1', sub_name: 'คอมพิวเตอร์ / Notebook ทั่วไป', sub_desc: 'ไม่มีสติกเกอร์ SVOA ใต้เครื่อง', image_url: '', default_staff_id: '', is_routine: '0', sort: '2', active: '1' },
-    { sub_id: '103', cat_id: '1', sub_name: 'เครื่องพิมพ์', sub_desc: '', image_url: '', default_staff_id: '', is_routine: '0', sort: '3', active: '1' },
-    { sub_id: '104', cat_id: '1', sub_name: 'ติดตั้ง / ปัญหาโปรแกรม', sub_desc: '', image_url: '', default_staff_id: '', is_routine: '0', sort: '4', active: '1' },
-    { sub_id: '301', cat_id: '3', sub_name: 'ระบบตัวอย่าง (แก้ชื่อในชีต sub_types)', sub_desc: '', image_url: '', default_staff_id: '', is_routine: '0', sort: '1', active: '1' }
-  ]);
+  seedIfEmpty_(new CategoryRepository(), MASTER_CATEGORIES_());
+  seedIfEmpty_(new SubTypeRepository(), MASTER_SUB_TYPES_());
 
   console.log('ตั้งค่าชีตเรียบร้อย');
 }
@@ -62,4 +49,86 @@ function seedIfEmpty_(repo, rows) {
 // รันด้วยมือ 1 ครั้งหลังเพิ่มขั้นที่ 2 เพื่อให้สิทธิ์ส่งอีเมล (MailApp)
 function authorizeMail() {
   console.log('ส่งเมลได้อีกวันนี้: ' + MailApp.getRemainingDailyQuota() + ' ฉบับ');
+}
+
+// รันด้วยมือ 1 ครั้งหลังเพิ่มขั้นที่ 3 เพื่อให้สิทธิ์ Google Drive (เก็บรูปแนบ)
+function authorizeDrive() {
+  console.log('โฟลเดอร์เก็บไฟล์แนบ: ' + Util.uploadFolder().getName());
+}
+
+/* ============================================================
+ * ข้อมูลตั้งต้น : หมวดบริการ / ประเภทย่อย
+ * แก้ไขเพิ่มลดภายหลังได้ที่ชีตโดยตรง
+ *  - ปิดรายการ = เปลี่ยน active เป็น 0 (อย่าลบแถว เพราะใบงานเก่าอ้างถึงอยู่)
+ *  - เพิ่มระบบงานใหม่ = เพิ่มแถวใน sub_types โดยใส่ cat_id = 3
+ *  - หมวดที่มี link_url จะเปิดลิงก์นั้นแทนการแจ้งงาน
+ * ============================================================ */
+function MASTER_CATEGORIES_() {
+  return [
+    { cat_id: '1', cat_name: 'คอมพิวเตอร์และโปรแกรม', cat_desc: 'ตัวเครื่อง และโปรแกรมทั่วไป',           icon: 'fas fa-laptop',        color: '#2f6fb5', sort: '1', active: '1', link_url: '' },
+    { cat_id: '6', cat_name: 'อุปกรณ์ต่อพ่วง',         cat_desc: 'Printer Scanner อุปกรณ์ประชุม',      icon: 'fas fa-print',         color: '#1f7a8c', sort: '2', active: '1', link_url: '' },
+    { cat_id: '2', cat_name: 'Internet และเครือข่าย',  cat_desc: 'เน็ตใช้ไม่ได้ หรือเครือข่ายขัดข้อง',   icon: 'fas fa-network-wired', color: '#1f8a70', sort: '3', active: '1', link_url: '' },
+    { cat_id: '3', cat_name: 'ระบบงานต่างๆ',          cat_desc: 'ระบบภายในองค์กร',                   icon: 'fas fa-th-large',      color: '#6b4fbb', sort: '4', active: '1', link_url: '' },
+    { cat_id: '5', cat_name: 'ปัญหาการใช้งาน E-mail',  cat_desc: 'เข้าใช้งาน รับส่งเมล',                 icon: 'fas fa-envelope',      color: '#b23a62', sort: '5', active: '1', link_url: '' },
+    { cat_id: '4', cat_name: 'ขอยืม Notebook',         cat_desc: 'ไปที่ระบบยืมเครื่องบน Intranet',       icon: 'fas fa-laptop-house',  color: '#c0582b', sort: '6', active: '1', link_url: 'วางลิงก์ระบบยืม Notebook ตรงนี้' }
+  ];
+}
+
+function MASTER_SUB_TYPES_() {
+  const row = (id, cat, name, desc, sort) => ({
+    sub_id: id, cat_id: cat, sub_name: name, sub_desc: desc,
+    image_url: '', default_staff_id: '', is_routine: '0', sort: sort, active: '1'
+  });
+  return [
+    row('101', '1', 'เครื่องคอมพิวเตอร์ / Notebook ทั่วไป', 'ไม่มีสติกเกอร์ SVOA ใต้เครื่อง', '1'),
+    row('102', '1', 'Notebook เช่าตามโครงการ',            'มีสติกเกอร์รับประกัน SVOA ใต้เครื่อง', '2'),
+    row('104', '1', 'โปรแกรมทั่วไป',                       'Word Excel PowerPoint PDF', '3'),
+
+    row('601', '6', 'Printer / Scanner',                  '', '1'),
+    row('602', '6', 'อุปกรณ์ประกอบการประชุม',               'กล้อง Webcam หูฟัง ลำโพง ไมโครโฟน', '2'),
+    row('603', '6', 'อุปกรณ์ต่อพ่วงอื่นๆ',                   'ระบุอุปกรณ์ในรายละเอียด', '3'),
+
+    row('301', '3', 'Odoo', '', '1'),
+    row('302', '3', 'TSC',  '', '2'),
+    row('303', '3', 'HRIS', '', '3'),
+    row('399', '3', 'ระบบอื่น', 'ระบุชื่อระบบในรายละเอียด', '99'),
+
+    row('501', '5', 'ปัญหาการเข้าใช้งาน',        'ลืมรหัสผ่าน / 2-Factor ใช้ไม่ได้', '1'),
+    row('502', '5', 'ปัญหาการส่งหรือรับ E-mail', '', '2'),
+    row('503', '5', 'ปัญหาอื่นๆ',                 'ระบุในรายละเอียด', '3')
+  ];
+}
+
+// รันด้วยมือ 1 ครั้ง : ปรับหมวด/ประเภทย่อยเดิมให้เป็นชุดของขั้นที่ 3
+// เก็บค่าที่ตั้งเองไว้ (link_url, รูป, ผู้ดูแลประจำ) ไม่เขียนทับ
+function migrateStep3() {
+  setupSheets();                                   // เพิ่มคอลัมน์ link_url ให้ชีต categories
+
+  const cats = new CategoryRepository();
+  MASTER_CATEGORIES_().forEach(c => {
+    const old = cats.findById(c.cat_id);
+    if (!old) { cats.insert(c); return; }
+    const changes = Object.assign({}, c);
+    if (String(old.link_url || '') !== '') delete changes.link_url;
+    cats.update(c.cat_id, changes);
+  });
+
+  const subs = new SubTypeRepository();
+  const keep = MASTER_SUB_TYPES_().map(s => s.sub_id);
+  MASTER_SUB_TYPES_().forEach(s => {
+    const old = subs.findById(s.sub_id);
+    if (!old) { subs.insert(s); return; }
+    const changes = Object.assign({}, s);
+    delete changes.image_url;
+    delete changes.default_staff_id;
+    subs.update(s.sub_id, changes);
+  });
+  // รายการเดิมที่ไม่อยู่ในชุดใหม่ (เช่น 103 เครื่องพิมพ์ ย้ายไปอุปกรณ์ต่อพ่วง) -> ปิดไว้
+  subs.findAll().forEach(s => {
+    if (keep.indexOf(String(s.sub_id)) === -1 && String(s.active) === '1') {
+      subs.update(s.sub_id, { active: '0' });
+    }
+  });
+
+  console.log('ปรับข้อมูลหมวดบริการเรียบร้อย');
 }

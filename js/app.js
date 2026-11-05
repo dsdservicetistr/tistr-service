@@ -11,7 +11,7 @@ const api = new ApiClient(APP_CONFIG.API_URL);
 class App {
   static ROUTES = {
     'login': { page: 'pages/user_login.html', title: 'เข้าสู่ระบบ', auth: false,  bare: true },
-    '1':     { page: 'pages/user_home.html',  title: 'หน้าหลัก',    auth: 'user' },
+    '1':     { page: 'pages/user_home.html',  title: 'ขอรับบริการ', auth: 'user' },
     '99':    { page: 'pages/system_test.html', title: 'ทดสอบระบบ',  auth: false }
   };
 
