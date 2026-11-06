@@ -200,6 +200,7 @@ class AuthController {
       position:  u.position,
       division:  u.division,
       division_id: u.division_id,
+      office_id: u.office_id,
       room:      u.room
     };
   }

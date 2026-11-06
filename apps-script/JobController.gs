@@ -40,7 +40,12 @@ class JobController {
     const div   = divId ? new DivisionRepository().findById(divId) : null;
     if (!div || String(div.active) !== '1') throw new AppError('กรุณาเลือกหน่วยงาน', 'REQUIRED');
 
+    const offId  = String(data.office_id || user.office_id || '');
+    const office = offId ? new OfficeRepository().findById(offId) : null;
+    if (!office || String(office.active) !== '1') throw new AppError('กรุณาเลือกที่ตั้ง (สาขา)', 'REQUIRED');
+
     const profile = {
+      office_id:   String(office.office_id),
       full_name:   Util.text(data.full_name || user.full_name, 'ชื่อ-นามสกุล', 100, true),
       position:    Util.text(data.position  || user.position,  'ตำแหน่ง',     100, false),
       division_id: String(div.div_id),
@@ -80,7 +85,8 @@ class JobController {
         asset_no: assetNo,
         attachments: '',
         status_number: '1',
-        division_id: profile.division_id                      // หน่วยงาน ณ วันที่แจ้ง (ใช้สรุปรายปี)
+        division_id: profile.division_id,                     // หน่วยงาน ณ วันที่แจ้ง (ใช้สรุปรายปี)
+        office_id: profile.office_id                          // สาขา ณ วันที่แจ้ง
       });
     } finally {
       lock.releaseLock();
@@ -158,6 +164,10 @@ class JobController {
           appointment_at: j.appointment_at,
           action_taken: j.action_taken,
           cancel_by: j.cancel_by,
+          cancel_by_name: (function () {
+            const c = logs.filter(l => String(l.job_id) === String(j.job_id) && l.action === 'cancel').pop();
+            return c ? lk.staffName(c.actor_id) : '';
+          })(),
           cancel_reason: j.cancel_reason,
           eval_status: j.eval_status,
           timeline: timeline

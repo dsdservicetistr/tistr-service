@@ -117,6 +117,15 @@ class StaffRepository extends SheetRepository {
   }
 }
 
+/* ---------- ที่ตั้ง / สาขา ---------- */
+class OfficeRepository extends SheetRepository {
+  constructor() { super(CONFIG.SHEETS.OFFICES); }
+
+  findActive() {
+    return this.findBy('active', '1').sort((a, b) => Number(a.sort) - Number(b.sort));
+  }
+}
+
 /* ---------- หน่วยงาน (ใช้สรุปรายปี / Dashboard) ---------- */
 class DivisionRepository extends SheetRepository {
   constructor() { super(CONFIG.SHEETS.DIVISIONS); }
@@ -228,12 +237,13 @@ class SecurityLogRepository extends SheetRepository {
 class SessionRepository extends SheetRepository {
   constructor() { super(CONFIG.SHEETS.SESSIONS); }
 
+  // days เป็นตัวเลข = อายุกี่วัน / เป็นข้อความ = วันเวลาหมดอายุ
   create(ownerType, ownerId, days) {
     return this.insert({
       token: Util.uuid().replace(/-/g, '') + Util.uuid().replace(/-/g, ''),
       owner_type: ownerType,
       owner_id: ownerId,
-      expires_at: Util.addDays(days)
+      expires_at: typeof days === 'string' ? days : Util.addDays(days)
     });
   }
 

@@ -40,6 +40,8 @@ class MasterController {
       label: DivisionRepository.label(d)
     }));
 
-    return { categories: categories, sub_types: subTypes, statuses: statuses, divisions: divisions };
+    const offices = new OfficeRepository().findActive().map(o => ({ office_id: o.office_id, office_name: o.office_name }));
+
+    return { categories: categories, sub_types: subTypes, statuses: statuses, divisions: divisions, offices: offices };
   }
 }

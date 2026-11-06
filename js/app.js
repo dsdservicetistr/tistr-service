@@ -33,6 +33,17 @@ class App {
 
     const params = new URLSearchParams(window.location.search);
     App.loadPage(params.get('MM') || App.DEFAULT_MM);
+    App.refreshStaff();
+  }
+
+  // ดึงข้อมูลเจ้าหน้าที่ล่าสุด (ชื่อ / role) มาแสดงในเมนู
+  static async refreshStaff() {
+    if (!StaffSession.isLoggedIn()) return;
+    try {
+      const d = await api.call('staff_me');
+      StaffSession.setUser(d.staff);
+      App.renderUserBox();
+    } catch (e) { /* token หมดอายุ ApiClient จัดการให้แล้ว */ }
   }
 
   static loadPage(MM) {
@@ -97,7 +108,7 @@ class App {
     $('.js-admin-menu').toggleClass('d-none', !(staffIn && staff.role === 'admin'));
     $('.js-staff-login-link').toggleClass('d-none', !!staffIn);
     if (staffIn) {
-      $('.js-staff-name').text(staff.full_name);
+      $('.js-staff-name').text(staff.full_name || staff.ad_name || '');
       $('.js-staff-role').text(staff.role === 'admin' ? 'Admin' : 'Operator');
     }
   }
@@ -118,6 +129,11 @@ class App {
       });
     } catch (e) { /* ไม่เป็นไร */ }
     StaffSession.clear();
+    // ออกจากฝั่ง User ด้วย ถ้าเป็นบัญชีที่ระบบเข้าให้อัตโนมัติตอนเข้าระบบเจ้าหน้าที่
+    if (localStorage.getItem('tistr_service_user_via_staff') === '1') {
+      Session.clear();
+      localStorage.removeItem('tistr_service_user_via_staff');
+    }
     App.go('staff_login');
   }
 }

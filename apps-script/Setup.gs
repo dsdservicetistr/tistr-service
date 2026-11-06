@@ -36,6 +36,7 @@ function setupSheets() {
   ]);
 
   seedIfEmpty_(new DivisionRepository(), MASTER_DIVISIONS_());
+  seedIfEmpty_(new OfficeRepository(), MASTER_OFFICES_());
   seedIfEmpty_(new CategoryRepository(), MASTER_CATEGORIES_());
   seedIfEmpty_(new SubTypeRepository(), MASTER_SUB_TYPES_());
 
@@ -73,6 +74,17 @@ function MASTER_CATEGORIES_() {
     { cat_id: '5', cat_name: 'ปัญหาการใช้งาน E-mail',  cat_desc: 'เข้าใช้งาน รับส่งเมล',                icon: 'fas fa-envelope',      color: '#b23a62', sort: '5', active: '1', link_url: '' },
     { cat_id: '7', cat_name: 'VDO Conference',       cat_desc: 'ขอบริการทางอีเมล DSD@tistr.or.th',   icon: 'fas fa-video',         color: '#8a5a12', sort: '6', active: '1', link_url: 'mailto:DSD@tistr.or.th' },
     { cat_id: '4', cat_name: 'ขอยืม Notebook',         cat_desc: 'ไปที่ระบบยืมเครื่องบน Intranet',      icon: 'fas fa-laptop-house',  color: '#c0582b', sort: '7', active: '1', link_url: 'https://intranet.tistr.or.th/borrow_service/' }
+  ];
+}
+
+// ที่ตั้ง / สาขาของ วว.
+function MASTER_OFFICES_() {
+  return [
+    { office_id: '1', office_name: 'เทคโนธานี',                    sort: '1', active: '1' },
+    { office_id: '2', office_name: 'ศูนย์การบรรจุหีบห่อไทย',          sort: '2', active: '1' },
+    { office_id: '3', office_name: 'ศูนย์ทดสอบและมาตรวิทยา',         sort: '3', active: '1' },
+    { office_id: '4', office_name: 'สถานีวิจัยสิ่งแวดล้อมสะแกราช',     sort: '4', active: '1' },
+    { office_id: '5', office_name: 'สถานีวิจัยลำตะคอง',              sort: '5', active: '1' }
   ];
 }
 

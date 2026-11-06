@@ -115,7 +115,9 @@ async function fn_staff_login() {
   $('#login_error').addClass('d-none');
   staff_state.ad_name = ad;
   try {
-    const d = await api.call('staff_login', { ad_name: ad, password: pw });
+    const d = await api.call('staff_login', {
+      ad_name: ad, password: pw, trust_token: localStorage.getItem('tistr_service_trust') || ''
+    });
     if (d.result === 'otp_required') {               // Admin : ยืนยัน OTP อีกชั้น
       staff_state.nonce = d.nonce;
       $('.js-mail-masked').text(d.email_masked);
@@ -225,6 +227,11 @@ async function fn_verify_2fa() {
 
 function fn_staff_done(d) {
   StaffSession.save(d.token, d.staff);
+  if (d.trust_token) localStorage.setItem('tistr_service_trust', d.trust_token);   // ยืนยัน OTP แล้ววันนี้
+  if (d.user_token) {                                                             // เข้าฝั่ง User ให้ด้วย
+    Session.save(d.user_token, d.user);
+    localStorage.setItem('tistr_service_user_via_staff', '1');
+  }
   App.go('jobs');
 }
 </script>

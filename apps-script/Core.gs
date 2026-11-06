@@ -60,6 +60,11 @@ const Util = {
     return Utilities.formatDate(d, CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
   },
 
+  // เวลาสิ้นสุดของวันนี้ (ใช้กับ "ยืนยัน OTP วันละครั้งต่อเครื่อง")
+  endOfToday: function () {
+    return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd') + ' 23:59:59';
+  },
+
   // วันเวลาอีก n นาทีข้างหน้า
   addMinutes: function (n) {
     const d = new Date(Date.now() + n * 60 * 1000);

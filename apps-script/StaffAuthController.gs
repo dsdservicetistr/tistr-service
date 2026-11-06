@@ -27,8 +27,14 @@ class StaffAuthController {
     }
     StaffAuthController._clearFails(staff.staff_id);
 
-    // Admin ต้องยืนยัน OTP ทุกครั้ง (2FA)
-    if (CONFIG.STAFF_2FA_ROLES.indexOf(String(staff.role)) > -1) {
+    // Admin ต้องยืนยัน OTP (2FA) วันละครั้งต่อเครื่อง
+    // เครื่องที่ยืนยันแล้ววันนี้จะส่ง trust_token มาด้วย -> ข้าม OTP ได้ถึงเที่ยงคืน
+    const needs2fa = CONFIG.STAFF_2FA_ROLES.indexOf(String(staff.role)) > -1;
+    if (needs2fa && StaffAuthController._trusted(staff, data.trust_token)) {
+      SecurityLogRepository.write('staff_login', 'staff', staff.ad_name, '2FA (เครื่องที่ยืนยันแล้ววันนี้)');
+      return StaffAuthController._issue(staff);
+    }
+    if (needs2fa) {
       if (!staff.email) throw new AppError('ยังไม่ได้ตั้งอีเมลของบัญชีนี้ กรุณาติดต่อ Admin', 'NO_EMAIL');
       const nonce = Util.uuid();
       CacheService.getScriptCache().put('staff_2fa_' + staff.staff_id, nonce, CONFIG.OTP.EXPIRE_MINUTES * 60);
@@ -60,7 +66,12 @@ class StaffAuthController {
     OtpService.verify('staff:' + staff.staff_id, 'staff_login', data.otp);
     CacheService.getScriptCache().remove(key);
     SecurityLogRepository.write('staff_login', 'staff', staff.ad_name, '2FA');
-    return StaffAuthController._issue(staff);
+
+    // จำเครื่องนี้ไว้ถึงเที่ยงคืน
+    const trust = new SessionRepository().create('trust', staff.staff_id, Util.endOfToday());
+    const result = StaffAuthController._issue(staff);
+    result.trust_token = trust.token;
+    return result;
   }
 
   // flg = staff_request_otp : ตั้งรหัสครั้งแรก / ลืมรหัส
@@ -96,7 +107,10 @@ class StaffAuthController {
     });
     StaffAuthController._clearFails(staff.staff_id);
     SecurityLogRepository.write('staff_password_set', 'staff', staff.ad_name, '');
-    return StaffAuthController._issue(updated);
+    // ตั้งรหัสผ่านผ่าน OTP แล้ว นับเป็นการยืนยัน 2FA ของวันนี้ในเครื่องนี้ด้วย
+    const result = StaffAuthController._issue(updated);
+    result.trust_token = new SessionRepository().create('trust', staff.staff_id, Util.endOfToday()).token;
+    return result;
   }
 
   // flg = staff_me
@@ -138,7 +152,23 @@ class StaffAuthController {
 
   static _issue(staff) {
     const s = new SessionRepository().create('staff', staff.staff_id, CONFIG.SESSION_DAYS_STAFF);
-    return { result: 'ok', token: s.token, expires_at: s.expires_at, staff: StaffAuthController.publicStaff(staff) };
+    const result = { result: 'ok', token: s.token, expires_at: s.expires_at, staff: StaffAuthController.publicStaff(staff) };
+
+    // ถ้าอีเมลและเบอร์โต๊ะตรงกับบัญชี User ที่ลงทะเบียนไว้ -> เข้าฝั่ง User ให้ด้วยเลย
+    const u = staff.email ? new UserRepository().findByEmail(staff.email) : null;
+    if (u && String(u.phone4) === String(staff.phone_desk)) {
+      // เจ้าหน้าที่ยืนยันอีเมลนี้ผ่าน OTP มาแล้วตอนตั้งรหัส จึงถือว่ายืนยันอีเมลแล้ว
+      const user = String(u.email_verified) === '1' ? u : new UserRepository().update(u.user_id, { email_verified: '1' });
+      const us = new SessionRepository().create('user', user.user_id, CONFIG.SESSION_DAYS_STAFF);
+      result.user_token = us.token;
+      result.user = AuthController.publicUser(user);
+    }
+    return result;
+  }
+
+  static _trusted(staff, token) {
+    const t = new SessionRepository().findValid(String(token || ''));
+    return !!t && t.owner_type === 'trust' && String(t.owner_id) === String(staff.staff_id);
   }
 
   // นับครั้งที่ใส่ผิดไว้ใน Cache (หายเองเมื่อครบเวลา)

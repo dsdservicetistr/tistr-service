@@ -54,6 +54,11 @@
                 <input type="text" class="form-control" id="f_position" maxlength="100">
               </div>
               <div class="form-group col-md-6">
+                <label for="f_office_id">ที่ตั้ง (สาขา) <span class="text-danger">*</span></label>
+                <select class="form-control" id="f_office_id"></select>
+                <small class="field-error" id="err_office_id"></small>
+              </div>
+              <div class="form-group col-md-6">
                 <label for="f_division_id">หน่วยงาน <span class="text-danger">*</span></label>
                 <select class="form-control" id="f_division_id" style="width:100%"></select>
                 <small class="field-error" id="err_division_id"></small>
@@ -302,13 +307,14 @@ function fn_fill_profile() {
   $('#f_full_name').val(u.full_name || '');
   $('#f_position').val(u.position || '');
   fn_init_division(u.division_id);
+  fn_init_office(u.office_id);
   $('#f_room').val(u.room || '');
   if (!$('#f_location').val()) $('#f_location').val(u.room || '');
 
-  if (u.full_name && u.division_id && u.room) {
+  if (u.full_name && u.division_id && u.office_id && u.room) {
     $('#profile_view').empty().append(
       $('<div class="sv-profile-name">').text(u.full_name + (u.position ? ' (' + u.position + ')' : '')),
-      $('<div class="text-muted small">').text(u.division + ' · ' + u.room + ' · โทร ' + u.phone4)
+      $('<div class="text-muted small">').text(fn_office_name(u.office_id) + ' · ' + u.division + ' · ' + u.room + ' · โทร ' + u.phone4)
     ).removeClass('d-none');
     $('#profile_edit').addClass('d-none');
     $('#btn_edit_profile').removeClass('d-none');
@@ -346,6 +352,22 @@ function fn_division_label(id) {
   return d ? d.label : '';
 }
 
+/* ---------- ที่ตั้ง (สาขา) : ผูกกับข้อมูลผู้แจ้ง ---------- */
+function fn_init_office(selectedId) {
+  const $sel = $('#f_office_id');
+  if (!$sel.children().length) {
+    $sel.append('<option value="">-- เลือกที่ตั้ง --</option>');
+    (sv.master.offices || []).forEach(o => $sel.append($('<option>').val(o.office_id).text(o.office_name)));
+    $sel.on('change', () => $('#err_office_id').text(''));
+  }
+  $sel.val(selectedId ? String(selectedId) : '');
+}
+
+function fn_office_name(id) {
+  const o = (sv.master.offices || []).find(x => String(x.office_id) === String(id));
+  return o ? o.office_name : '';
+}
+
 /* ---------- VDO Conference : ให้ User ส่งอีเมลเอง ---------- */
 function fn_open_mail(cat, to) {
   const u = Session.user() || {};
@@ -367,6 +389,7 @@ function fn_open_mail(cat, to) {
     'ผู้ประสานงาน',
     'ชื่อ : ' + (u.full_name || ''),
     'หน่วยงาน : ' + (fn_division_label(u.division_id) || u.division || ''),
+    'ที่ตั้ง : ' + fn_office_name(u.office_id),
     'โทรภายใน : ' + (u.phone4 || ''),
     'อีเมล : ' + (u.email || '')
   ].join('\r\n');
@@ -464,6 +487,7 @@ function fn_render_files() {
 function fn_validate_job() {
   const rules = [
     ['full_name', 'กรุณากรอกชื่อ-นามสกุล'],
+    ['office_id', 'กรุณาเลือกที่ตั้ง (สาขา)'],
     ['division_id', 'กรุณาเลือกหน่วยงาน'],
     ['room',      'กรุณากรอกห้อง / อาคาร'],
     ['detail',    'กรุณาอธิบายปัญหา'],
@@ -477,7 +501,7 @@ function fn_validate_job() {
     }
   });
   if (first) {
-    if (['full_name', 'division_id', 'room'].indexOf(first) > -1) fn_edit_profile();
+    if (['full_name', 'office_id', 'division_id', 'room'].indexOf(first) > -1) fn_edit_profile();
     if (first === 'division_id') $('#f_division_id').select2('open');
     else $('#f_' + first).trigger('focus');
     return false;
@@ -499,6 +523,7 @@ async function fn_submit_job() {
       full_name: $('#f_full_name').val().trim(),
       position: $('#f_position').val().trim(),
       division_id: $('#f_division_id').val() || '',
+      office_id: $('#f_office_id').val() || '',
       room: $('#f_room').val().trim(),
       detail: $('#f_detail').val().trim(),
       location: $('#f_location').val().trim(),

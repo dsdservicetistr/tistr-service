@@ -1,10 +1,10 @@
 <!-- แท็บกรองสถานะ -->
 <ul class="nav nav-pills jb-tabs mb-3" id="job_tabs" role="tablist">
-  <li class="nav-item"><a class="nav-link" href="#" data-filter="mine">งานของฉัน <span class="badge badge-light js-count-mine">0</span></a></li>
-  <li class="nav-item js-admin-only"><a class="nav-link" href="#" data-filter="new">งานใหม่ <span class="badge badge-light js-count-new">0</span></a></li>
-  <li class="nav-item"><a class="nav-link active" href="#" data-filter="open">กำลังดำเนินการ <span class="badge badge-light js-count-open">0</span></a></li>
-  <li class="nav-item"><a class="nav-link" href="#" data-filter="closed">ปิด / ยกเลิก <span class="badge badge-light js-count-closed">0</span></a></li>
-  <li class="nav-item"><a class="nav-link" href="#" data-filter="all">ทั้งหมด <span class="badge badge-light js-count-all">0</span></a></li>
+  <li class="nav-item"><a class="nav-link active" href="#" data-filter="all">ทั้งหมด <span class="badge badge-light js-count-all">…</span></a></li>
+  <li class="nav-item js-admin-only"><a class="nav-link" href="#" data-filter="new">งานใหม่ <span class="badge badge-light js-count-new">…</span></a></li>
+  <li class="nav-item"><a class="nav-link" href="#" data-filter="mine">งานของฉัน <span class="badge badge-light js-count-mine">…</span></a></li>
+  <li class="nav-item"><a class="nav-link" href="#" data-filter="open">กำลังดำเนินการ <span class="badge badge-light js-count-open">…</span></a></li>
+  <li class="nav-item"><a class="nav-link" href="#" data-filter="closed">ปิด / ยกเลิก <span class="badge badge-light js-count-closed">…</span></a></li>
   <li class="nav-item ml-auto">
     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fn_load_jobs()" title="โหลดใหม่">
       <i class="fas fa-sync-alt" id="icon_reload"></i> <span class="d-none d-sm-inline" id="last_load"></span>
@@ -15,6 +15,7 @@
 <div class="card card-primary card-outline">
   <div class="card-body">
     <div class="alert alert-danger d-none" id="jobs_error"></div>
+    <div class="jb-loading" id="jobs_loading"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดรายการงาน...</div>
     <div class="table-responsive">
       <table class="table table-hover table-sm w-100" id="tb_jobs">
         <thead>
@@ -50,7 +51,7 @@
 </div>
 
 <script>
-var jb = { filter: StaffSession.isAdmin() ? 'open' : 'mine', table: null, detail: null, timer: null };
+var jb = { filter: 'all', table: null, detail: null, timer: null, loading: false };
 $('.js-admin-only').toggle(StaffSession.isAdmin());
 $('#job_tabs .nav-link').removeClass('active');
 $('#job_tabs [data-filter="' + jb.filter + '"]').addClass('active');
@@ -70,6 +71,7 @@ jb.table = $('#tb_jobs').DataTable({
     { data: 'created_at', render: (d, type) => type === 'display'
         ? esc(Fmt.dateTime(d)) + '<div class="text-muted small">' + esc(Fmt.ago(d)) + '</div>' : d },
     { data: null, render: r => esc(r.user_name) + '<div class="text-muted small">' + esc(r.division) +
+        (r.office ? ' · ' + esc(r.office) : '') +
         (r.user_phone ? ' · โทร ' + esc(r.user_phone) : '') + '</div>' },
     { data: null, render: r => esc(r.category) +
         (r.cat_changed ? ' <span class="badge badge-warning" title="Admin เปลี่ยนหมวดแล้ว">ปรับหมวด</span>' : '') +
@@ -101,7 +103,11 @@ $('#job_tabs').on('click', '[data-filter]', function (e) {
 });
 
 async function fn_load_jobs() {
+  if (jb.loading) return;
+  jb.loading = true;
   $('#icon_reload').addClass('fa-spin');
+  $('#jobs_loading').removeClass('d-none');
+  $('#tb_jobs').closest('.table-responsive').addClass('jb-dim');
   try {
     const d = await api.call('staff_list_jobs', { filter: jb.filter });
     StaffSession.setUser(d.me);
@@ -113,18 +119,21 @@ async function fn_load_jobs() {
   } catch (err) {
     $('#jobs_error').text(err.message).removeClass('d-none');
   } finally {
+    jb.loading = false;
     $('#icon_reload').removeClass('fa-spin');
+    $('#jobs_loading').addClass('d-none');
+    $('#tb_jobs').closest('.table-responsive').removeClass('jb-dim');
   }
 }
 
 fn_load_jobs();
 
-// โหลดใหม่ทุก 60 วินาที เฉพาะตอนเปิดหน้านี้อยู่และไม่ได้เปิดรายละเอียดงาน
+// โหลดใหม่ทุก 5 นาที เฉพาะตอนเปิดหน้านี้อยู่และไม่ได้เปิดรายละเอียดงาน (กดปุ่มโหลดใหม่เองได้)
 clearInterval(window.jobsTimer);
 window.jobsTimer = setInterval(function () {
   if (!document.getElementById('tb_jobs')) { clearInterval(window.jobsTimer); return; }
   if (document.visibilityState === 'visible' && !$('#modal_job').hasClass('show')) fn_load_jobs();
-}, 60000);
+}, 5 * 60 * 1000);
 
 /* ---------- รายละเอียดใบงาน ---------- */
 async function fn_open_job(jobId) {
@@ -152,7 +161,7 @@ function fn_render_detail() {
   html += '<div class="row">';
   html += '<div class="col-md-6 mb-3"><div class="jb-label">ผู้แจ้ง</div>' +
     '<div class="font-weight-bold">' + esc(u.full_name) + (u.position ? ' <span class="text-muted font-weight-normal">(' + esc(u.position) + ')</span>' : '') + '</div>' +
-    '<div class="small">' + esc(u.division) + '</div>' +
+    '<div class="small">' + esc(u.division) + (u.office ? ' · ' + esc(u.office) : '') + '</div>' +
     '<div class="small">โทร <a href="tel:' + esc(u.phone4) + '">' + esc(u.phone4) + '</a> · ' + esc(u.email) + '</div></div>';
   html += '<div class="col-md-6 mb-3"><div class="jb-label">แจ้งเมื่อ</div><div>' + esc(Fmt.dateTime(j.created_at)) + '</div>' +
     '<div class="jb-label mt-2">สถานที่</div><div>' + esc(j.location) + (j.asset_no ? ' · ครุภัณฑ์ ' + esc(j.asset_no) : '') + '</div></div>';

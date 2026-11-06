@@ -56,12 +56,16 @@ const CONFIG = {
       name: 'users',
       // คอลัมน์ใหม่ต่อท้ายเสมอ (ห้ามแทรกกลาง ไม่งั้นข้อมูลเดิมจะเลื่อนคอลัมน์)
       headers: ['user_id', 'email', 'phone4', 'full_name', 'position', 'division', 'room',
-                'created_at', 'updated_at', 'division_id', 'email_verified']
+                'created_at', 'updated_at', 'division_id', 'email_verified', 'office_id']
     },
     STAFF: {
       name: 'staff',
       headers: ['staff_id', 'ad_name', 'full_name', 'role', 'phone_desk', 'photo_url',
                 'pass_hash', 'pass_salt', 'active', 'created_at', 'updated_at', 'email']
+    },
+    OFFICES: {
+      name: 'offices',
+      headers: ['office_id', 'office_name', 'sort', 'active']
     },
     DIVISIONS: {
       name: 'divisions',
@@ -87,7 +91,7 @@ const CONFIG = {
                 'detail', 'location', 'asset_no', 'attachments',
                 'status_number', 'assigned_staff_id', 'appointment_at',
                 'cause', 'action_taken', 'cancel_by', 'cancel_reason', 'eval_status',
-                'created_at', 'updated_at', 'division_id']
+                'created_at', 'updated_at', 'division_id', 'office_id']
     },
     JOB_LOG: {
       name: 'job_log',

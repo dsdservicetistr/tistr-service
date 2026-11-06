@@ -15,12 +15,18 @@ class Lookup {
     this.subs      = map(new SubTypeRepository().findAll(), 'sub_id');
     this.statuses  = map(new StatusRepository().findAll(), 'status_number');
     this.divisions = map(new DivisionRepository().findAll(), 'div_id');
+    this.offices   = map(new OfficeRepository().findAll(), 'office_id');
   }
 
   catName(catId, subId) {
     const c = this.cats[String(catId)];
     const s = this.subs[String(subId)];
     return (c ? c.cat_name : '-') + (s ? ' > ' + s.sub_name : '');
+  }
+
+  officeName(id) {
+    const o = this.offices[String(id)];
+    return o ? o.office_name : '';
   }
 
   staffName(id) {
@@ -77,6 +83,7 @@ class AdminController {
         user_name: u.full_name || u.email || '-',
         user_phone: u.phone4 || '',
         division: d ? DivisionRepository.label(d) : (u.division || ''),
+        office: lk.officeName(j.office_id),
         category: lk.catName(j.cat_id, j.sub_id),
         cat_changed: String(j.cat_id) !== String(j.original_cat_id) || String(j.sub_id) !== String(j.original_sub_id),
         detail_short: String(j.detail || '').slice(0, 120),
@@ -143,7 +150,8 @@ class AdminController {
       is_mine: String(job.assigned_staff_id) === String(me.staff_id),
       user: {
         full_name: u.full_name, position: u.position, email: u.email, phone4: u.phone4,
-        division: d ? DivisionRepository.label(d) : (u.division || ''), room: u.room
+        division: d ? DivisionRepository.label(d) : (u.division || ''), room: u.room,
+        office: lk.officeName(job.office_id || u.office_id)
       },
       logs: logs,
       can_manage: isAdmin && AdminController.CLOSED.indexOf(String(job.status_number)) === -1

@@ -1,6 +1,9 @@
 <div class="d-flex align-items-center mb-3">
-  <p class="text-muted mb-0">สถานะอัปเดตอัตโนมัติ <span id="my_last" class="small"></span></p>
-  <a href="index.html?MM=1" class="btn btn-primary btn-sm ml-auto"><i class="fas fa-plus"></i> แจ้งเรื่องใหม่</a>
+  <p class="text-muted mb-0">อัปเดตอัตโนมัติทุก 5 นาที <span id="my_last" class="small"></span></p>
+  <button type="button" class="btn btn-outline-secondary btn-sm ml-auto mr-2" onclick="fn_load_my()" title="โหลดใหม่">
+    <i class="fas fa-sync-alt" id="my_reload"></i> โหลดใหม่
+  </button>
+  <a href="index.html?MM=1" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> แจ้งเรื่องใหม่</a>
 </div>
 
 <div class="alert alert-danger d-none" id="my_error"></div>
@@ -60,8 +63,8 @@ function fn_job_card(j) {
   h += fn_staff_card(j);
 
   if (st === '7') {
-    const by = j.cancel_by === 'admin' ? 'Admin' : 'ผู้ปฏิบัติงาน';
-    h += '<div class="alert alert-danger py-2 mb-2">ยกเลิกโดย ' + by + ' เนื่องจาก ' + esc(j.cancel_reason) + '</div>';
+    const by = (j.cancel_by === 'admin' ? 'Admin' : 'ผู้ปฏิบัติงาน') + (j.cancel_by_name ? ' (' + j.cancel_by_name + ')' : '');
+    h += '<div class="alert alert-danger py-2 mb-2">ยกเลิกโดย ' + esc(by) + ' เนื่องจาก ' + esc(j.cancel_reason) + '</div>';
   }
   if (st === '5') {
     h += '<div class="alert alert-success py-2 mb-2"><i class="fas fa-check-circle"></i> ดำเนินการเสร็จแล้ว' +
@@ -84,6 +87,7 @@ function fn_job_card(j) {
 }
 
 async function fn_load_my() {
+  $('#my_reload').addClass('fa-spin');
   try {
     const d = await api.call('user_my_jobs');
     if (!d.jobs.length) {
@@ -102,6 +106,8 @@ async function fn_load_my() {
     $('#my_last').text('(ล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ')');
   } catch (err) {
     $('#my_error').text(err.message).removeClass('d-none');
+  } finally {
+    $('#my_reload').removeClass('fa-spin');
   }
 }
 
@@ -136,5 +142,5 @@ clearInterval(window.myJobsTimer);
 window.myJobsTimer = setInterval(function () {
   if (!document.getElementById('my_list')) { clearInterval(window.myJobsTimer); return; }
   if (document.visibilityState === 'visible') fn_load_my();
-}, 30000);
+}, 5 * 60 * 1000);
 </script>
