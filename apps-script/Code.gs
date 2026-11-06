@@ -23,7 +23,7 @@ function doPost(e) {
       return AppResponse.error(err.message, err.code);
     }
     console.error(err && err.stack ? err.stack : err);
-    const detail = CONFIG.DEBUG ? ' : ' + (err && err.message ? err.message : err) : '';
+    const detail = Util.isDebug() ? ' : ' + (err && err.message ? err.message : err) : '';
     return AppResponse.error('เกิดข้อผิดพลาดภายในระบบ' + detail, 'SERVER_ERROR');
   }
 }
@@ -44,6 +44,9 @@ class Router {
         return AuthController.userLogin(data);
 
       // เปลี่ยนเบอร์ต้องยืนยันด้วย OTP ทางอีเมล
+      case 'user_verify_email':
+        return AuthController.userVerifyEmail(data);
+
       case 'user_request_otp':
         return AuthController.userRequestOtp(data);
 
@@ -57,6 +60,9 @@ class Router {
       // ===== ขั้นที่ 4 : เจ้าหน้าที่ =====
       case 'staff_login':
         return StaffAuthController.login(data);
+
+      case 'staff_verify_login':
+        return StaffAuthController.verifyLogin(data);
 
       case 'staff_request_otp':
         return StaffAuthController.requestOtp(data);

@@ -13,6 +13,16 @@ class JobController {
   static create(data, req) {
     const user = Auth.requireUser(req);
 
+    // กันสแปม : จำกัดจำนวนเรื่องต่อชั่วโมง
+    const hourAgo = Utilities.formatDate(new Date(Date.now() - 3600 * 1000), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+    const recent = new JobRepository().findBy('user_id', user.user_id)
+      .filter(j => String(j.created_at) > hourAgo).length;
+    if (recent >= CONFIG.JOB_LIMIT_PER_HOUR) {
+      SecurityLogRepository.write('job_rate_limit', 'user', user.email, recent + ' เรื่อง/ชม.');
+      throw new AppError('แจ้งเรื่องได้ไม่เกิน ' + CONFIG.JOB_LIMIT_PER_HOUR +
+        ' เรื่องต่อชั่วโมง ถ้าเร่งด่วนกรุณาโทร ' + CONFIG.SUPPORT_PHONE, 'RATE_LIMIT');
+    }
+
     // ---------- หมวด / ประเภทย่อย ----------
     const cat = new CategoryRepository().findById(data.cat_id);
     if (!cat || String(cat.active) !== '1') throw new AppError('ไม่พบหมวดบริการที่เลือก', 'BAD_CATEGORY');

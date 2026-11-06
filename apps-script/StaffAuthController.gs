@@ -20,11 +20,46 @@ class StaffAuthController {
     const password = String(data.password || '');
     if (Util.hashPassword(staff.pass_salt, password) !== String(staff.pass_hash)) {
       const left = StaffAuthController._recordFail(staff.staff_id);
+      SecurityLogRepository.write('staff_login_fail', 'staff', staff.ad_name, 'เหลือ ' + left + ' ครั้ง');
       throw new AppError(left > 0
         ? 'รหัสผ่านไม่ถูกต้อง เหลือโอกาสอีก ' + left + ' ครั้ง'
         : 'ใส่รหัสผิดเกินกำหนด ล็อกไว้ ' + CONFIG.STAFF_LOGIN.LOCK_MINUTES + ' นาที', 'LOGIN_FAILED');
     }
     StaffAuthController._clearFails(staff.staff_id);
+
+    // Admin ต้องยืนยัน OTP ทุกครั้ง (2FA)
+    if (CONFIG.STAFF_2FA_ROLES.indexOf(String(staff.role)) > -1) {
+      if (!staff.email) throw new AppError('ยังไม่ได้ตั้งอีเมลของบัญชีนี้ กรุณาติดต่อ Admin', 'NO_EMAIL');
+      const nonce = Util.uuid();
+      CacheService.getScriptCache().put('staff_2fa_' + staff.staff_id, nonce, CONFIG.OTP.EXPIRE_MINUTES * 60);
+      OtpService.issue('staff:' + staff.staff_id, 'staff_login', staff.email, code => ({
+        subject: '[' + CONFIG.APP_NAME + '] รหัส OTP เข้าสู่ระบบเจ้าหน้าที่',
+        htmlBody: OtpService.mailBody('มีการเข้าสู่ระบบด้วยบัญชี <b>' + Util.esc(staff.ad_name) +
+          '</b> และใส่รหัสผ่านถูกต้องแล้ว ถ้าไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที', code)
+      }));
+      return {
+        result: 'otp_required',
+        nonce: nonce,
+        email_masked: Util.maskEmail(staff.email),
+        resend_seconds: CONFIG.OTP.RESEND_SECONDS
+      };
+    }
+
+    SecurityLogRepository.write('staff_login', 'staff', staff.ad_name, '');
+    return StaffAuthController._issue(staff);
+  }
+
+  // flg = staff_verify_login : ขั้นที่ 2 ของ Admin (OTP) ต้องมาคู่กับ nonce จากขั้นรหัสผ่าน
+  static verifyLogin(data) {
+    const staff = StaffAuthController._findActive(data.ad_name);
+    const key   = 'staff_2fa_' + staff.staff_id;
+    const nonce = CacheService.getScriptCache().get(key);
+    if (!nonce || nonce !== String(data.nonce || '')) {
+      throw new AppError('หมดเวลายืนยัน กรุณาเข้าสู่ระบบใหม่อีกครั้ง', 'LOGIN_EXPIRED');
+    }
+    OtpService.verify('staff:' + staff.staff_id, 'staff_login', data.otp);
+    CacheService.getScriptCache().remove(key);
+    SecurityLogRepository.write('staff_login', 'staff', staff.ad_name, '2FA');
     return StaffAuthController._issue(staff);
   }
 
@@ -60,6 +95,7 @@ class StaffAuthController {
       pass_hash: Util.hashPassword(salt, password)
     });
     StaffAuthController._clearFails(staff.staff_id);
+    SecurityLogRepository.write('staff_password_set', 'staff', staff.ad_name, '');
     return StaffAuthController._issue(updated);
   }
 
@@ -109,6 +145,7 @@ class StaffAuthController {
   static _checkLock(id) {
     const fails = Number(CacheService.getScriptCache().get('staff_fail_' + id) || 0);
     if (fails >= CONFIG.STAFF_LOGIN.MAX_FAILS) {
+      SecurityLogRepository.write('staff_locked', 'staff', id, '');
       throw new AppError('บัญชีถูกล็อกชั่วคราว ลองใหม่ใน ' + CONFIG.STAFF_LOGIN.LOCK_MINUTES +
         ' นาที หรือกด "ลืมรหัสผ่าน"', 'LOCKED');
     }

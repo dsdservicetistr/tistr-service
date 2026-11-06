@@ -39,26 +39,74 @@ class AuthController {
   static userLogin(data) {
     const email = AuthController.normalizeEmail(data.email);
     const phone = AuthController.normalizePhone(data.phone4);
+    const lockKey = 'user_fail_' + email;
+
+    // กันการไล่เดาเบอร์ 4 หลัก
+    if (Util.counter.get(lockKey) >= CONFIG.USER_LOGIN.MAX_FAILS) {
+      SecurityLogRepository.write('user_locked', 'user', email, '');
+      throw new AppError('ใส่เบอร์ไม่ตรงหลายครั้งเกินไป กรุณารอ ' + CONFIG.USER_LOGIN.LOCK_MINUTES +
+        ' นาที หรือติดต่อ สทส. โทร ' + CONFIG.SUPPORT_PHONE, 'LOCKED');
+    }
+
+    const user = new UserRepository().findByEmail(email);
+
+    // ผู้ใช้ใหม่ / ยังไม่ยืนยันอีเมล -> ส่ง OTP ยืนยันว่าเป็นเจ้าของอีเมลจริงก่อน
+    if (!user || String(user.email_verified) !== '1') {
+      if (user && String(user.phone4) !== phone) return AuthController._mismatch(email, lockKey);
+      return AuthController._sendVerifyEmail(email, phone);
+    }
+
+    if (String(user.phone4) !== phone) return AuthController._mismatch(email, lockKey);
+
+    Util.counter.clear(lockKey);
+    SecurityLogRepository.write('user_login', 'user', email, '');
+    return AuthController._issueUserSession(user, false);
+  }
+
+  // flg = user_verify_email : กรอก OTP ยืนยันอีเมลครั้งแรก -> สร้าง/ยืนยันบัญชี + เข้าระบบ
+  static userVerifyEmail(data) {
+    const email = AuthController.normalizeEmail(data.email);
+    const otp   = OtpService.verify(email, 'verify_email', data.otp);
     const users = new UserRepository();
 
-    // กันกดซ้ำพร้อมกันแล้วได้ User ซ้ำ 2 แถว
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
       let user  = users.findByEmail(email);
       let isNew = false;
-
       if (!user) {
-        user  = users.insert({ email: email, phone4: phone });
+        user  = users.insert({ email: email, phone4: String(otp.new_phone4), email_verified: '1' });
         isNew = true;
-      } else if (String(user.phone4) !== phone) {
-        return { result: 'phone_mismatch', email: email, support_phone: CONFIG.SUPPORT_PHONE };
+      } else {
+        user = users.update(user.user_id, { email_verified: '1' });
       }
-
+      Util.counter.clear('user_fail_' + email);
+      SecurityLogRepository.write('user_email_verified', 'user', email, isNew ? 'new' : 'existing');
       return AuthController._issueUserSession(user, isNew);
     } finally {
       lock.releaseLock();
     }
+  }
+
+  static _mismatch(email, lockKey) {
+    const n = Util.counter.add(lockKey, CONFIG.USER_LOGIN.LOCK_MINUTES * 60);
+    SecurityLogRepository.write('user_phone_mismatch', 'user', email, 'ครั้งที่ ' + n);
+    return { result: 'phone_mismatch', email: email, support_phone: CONFIG.SUPPORT_PHONE };
+  }
+
+  static _sendVerifyEmail(email, phone) {
+    OtpService.issue(email, 'verify_email', email, code => ({
+      subject: '[' + CONFIG.APP_NAME + '] รหัส OTP ยืนยันอีเมล',
+      htmlBody: OtpService.mailBody('ยืนยันอีเมลเพื่อเริ่มใช้งาน' + Util.esc(CONFIG.APP_NAME) +
+        ' (ยืนยันครั้งเดียว ครั้งต่อไปใช้อีเมลและเบอร์ภายในเข้าระบบได้ทันที)', code)
+    }), { new_phone4: phone });
+    return {
+      result: 'verify_email',
+      email: email,
+      expire_minutes: CONFIG.OTP.EXPIRE_MINUTES,
+      resend_seconds: CONFIG.OTP.RESEND_SECONDS,
+      support_phone: CONFIG.SUPPORT_PHONE
+    };
   }
 
   // flg = user_request_otp : ขอรหัส OTP สำหรับเปลี่ยนเบอร์ (ส่งไปที่อีเมลของบัญชี)
@@ -97,8 +145,11 @@ class AuthController {
     const user = users.findByEmail(email);
     if (!user) throw new AppError('ไม่พบอีเมลนี้ในระบบ', 'NOT_FOUND');
 
+    // OTP ส่งถึงอีเมลนี้แล้ว จึงถือว่ายืนยันอีเมลไปในตัว
     const oldPhone = String(user.phone4);
-    const updated  = users.update(user.user_id, { phone4: String(otp.new_phone4) });
+    const updated  = users.update(user.user_id, { phone4: String(otp.new_phone4), email_verified: '1' });
+    Util.counter.clear('user_fail_' + email);
+    SecurityLogRepository.write('user_phone_changed', 'user', email, oldPhone + ' -> ' + otp.new_phone4);
     AuthController._notifyPhoneChanged(updated, oldPhone, String(otp.new_phone4));
 
     return AuthController._issueUserSession(updated, false);

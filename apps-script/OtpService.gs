@@ -14,6 +14,19 @@ class OtpService {
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
+      // จำกัดจำนวนต่อวัน และกันโควตาอีเมลของทั้งระบบหมด
+      const today = Util.now().slice(0, 10);
+      const sentToday = otps.findAll().filter(o =>
+        String(o.email) === String(key) && String(o.created_at).slice(0, 10) === today).length;
+      if (sentToday >= CONFIG.OTP.MAX_PER_DAY) {
+        SecurityLogRepository.write('otp_daily_limit', 'otp', key, purpose);
+        throw new AppError('ขอรหัส OTP ครบจำนวนของวันนี้แล้ว กรุณาติดต่อ สทส. โทร ' + CONFIG.SUPPORT_PHONE, 'OTP_DAILY_LIMIT');
+      }
+      if (MailApp.getRemainingDailyQuota() < CONFIG.MAIL_RESERVE) {
+        SecurityLogRepository.write('mail_quota_low', 'otp', key, purpose);
+        throw new AppError('ระบบส่งอีเมลเต็มโควตาของวันนี้ กรุณาติดต่อ สทส. โทร ' + CONFIG.SUPPORT_PHONE, 'MAIL_QUOTA');
+      }
+
       const last = otps.findLatestActive(key, purpose);
       if (last) {
         const passed = (Date.now() - Util.parse(last.created_at).getTime()) / 1000;
@@ -34,6 +47,7 @@ class OtpService {
         used: '0'
       }, extra || {}));
 
+      SecurityLogRepository.write('otp_issue', 'otp', key, purpose);
       const mail = buildMail(code);
       try {
         MailApp.sendEmail({ to: sendTo, subject: mail.subject, htmlBody: mail.htmlBody });
@@ -70,6 +84,7 @@ class OtpService {
         const used = attempts + 1;
         const left = CONFIG.OTP.MAX_ATTEMPTS - used;
         otps.update(otp.otp_id, { attempts: String(used), used: left <= 0 ? '4' : '0' });
+        SecurityLogRepository.write('otp_wrong', 'otp', key, purpose + ' ผิดครั้งที่ ' + used);
         if (left <= 0) throw new AppError('กรอกรหัสผิดเกินกำหนด กรุณากดขอรหัสใหม่', 'OTP_LOCKED');
         throw new AppError('รหัสไม่ถูกต้อง เหลือโอกาสอีก ' + left + ' ครั้ง', 'OTP_WRONG');
       }

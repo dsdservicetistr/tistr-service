@@ -31,6 +31,22 @@
         </div>
       </form>
 
+      <!-- Admin : ยืนยัน OTP ทุกครั้งที่เข้าระบบ -->
+      <form id="panel_2fa" class="d-none" novalidate onsubmit="fn_verify_2fa(); return false;">
+        <div class="mismatch">
+          <div class="mismatch-icon otp-icon"><i class="fas fa-shield-alt"></i></div>
+          <h3 class="mismatch-title">ยืนยันตัวตนอีกขั้น</h3>
+          <p class="mismatch-text">ส่งรหัส 6 หลักไปที่ <strong class="js-mail-masked"></strong> แล้ว</p>
+        </div>
+        <input type="text" id="s_2fa" class="form-control otp-input" inputmode="numeric" maxlength="6"
+               autocomplete="one-time-code" placeholder="••••••" aria-label="รหัส OTP">
+        <div class="alert alert-danger d-none mt-3" id="tfa_error"></div>
+        <button type="submit" class="btn btn-primary btn-block mt-3" id="btn_2fa">
+          <i class="fas fa-check"></i> ยืนยันและเข้าสู่ระบบ
+        </button>
+        <button type="button" class="btn btn-link btn-block text-muted" onclick="fn_show('panel_login')">ยกเลิก</button>
+      </form>
+
       <!-- ยืนยันส่ง OTP -->
       <div id="panel_need" class="mismatch d-none">
         <div class="mismatch-icon otp-icon"><i class="fas fa-key"></i></div>
@@ -75,10 +91,10 @@
 </div>
 
 <script>
-var staff_state = { ad_name: '', timer: null, pwMin: 8 };
+var staff_state = { ad_name: '', timer: null, pwMin: 8, nonce: '' };
 
 function fn_show(id) {
-  $('#panel_login, #panel_need, #panel_set').addClass('d-none');
+  $('#panel_login, #panel_need, #panel_set, #panel_2fa').addClass('d-none');
   $('#' + id).removeClass('d-none');
   $('.alert-danger').addClass('d-none');
   if (id === 'panel_login') clearInterval(staff_state.timer);
@@ -100,6 +116,13 @@ async function fn_staff_login() {
   staff_state.ad_name = ad;
   try {
     const d = await api.call('staff_login', { ad_name: ad, password: pw });
+    if (d.result === 'otp_required') {               // Admin : ยืนยัน OTP อีกชั้น
+      staff_state.nonce = d.nonce;
+      $('.js-mail-masked').text(d.email_masked);
+      fn_show('panel_2fa');
+      $('#s_2fa').val('').trigger('focus');
+      return;
+    }
     if (d.result === 'need_setup') {
       $('.js-mail-masked').text(d.email_masked);
       $('#need_title').text('ตั้งรหัสผ่านครั้งแรก');
@@ -177,6 +200,26 @@ async function fn_set_password() {
     }
   } finally {
     $b.prop('disabled', false).html('<i class="fas fa-check"></i> ตั้งรหัสผ่านและเข้าสู่ระบบ');
+  }
+}
+
+$('#s_2fa').on('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); });
+
+async function fn_verify_2fa() {
+  const otp = $('#s_2fa').val().trim();
+  if (!/^\d{6}$/.test(otp)) { fn_err('tfa_error', 'กรุณากรอกรหัส OTP 6 หลัก'); return; }
+  const $b = $('#btn_2fa').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...');
+  try {
+    const d = await api.call('staff_verify_login', { ad_name: staff_state.ad_name, nonce: staff_state.nonce, otp: otp });
+    fn_staff_done(d);
+  } catch (err) {
+    fn_err('tfa_error', err.message);
+    $('#s_2fa').val('').trigger('focus');
+    if (err.code === 'LOGIN_EXPIRED' || err.code === 'OTP_LOCKED') {
+      setTimeout(() => { fn_show('panel_login'); $('#s_password').val('').trigger('focus'); }, 1800);
+    }
+  } finally {
+    $b.prop('disabled', false).html('<i class="fas fa-check"></i> ยืนยันและเข้าสู่ระบบ');
   }
 }
 

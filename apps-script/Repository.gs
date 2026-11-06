@@ -209,6 +209,21 @@ class OtpRepository extends SheetRepository {
   }
 }
 
+/* ---------- Security log : เข้าระบบ / OTP / เปลี่ยนรหัส (ไม่เก็บรหัสหรือ OTP) ---------- */
+class SecurityLogRepository extends SheetRepository {
+  constructor() { super(CONFIG.SHEETS.SECURITY_LOG); }
+
+  static write(event, actorType, actorKey, detail) {
+    try {
+      new SecurityLogRepository().insert({
+        event: event, actor_type: actorType, actor_key: actorKey, detail: detail || ''
+      });
+    } catch (e) {
+      console.error('เขียน security log ไม่สำเร็จ: ' + e);      // log พังต้องไม่ทำให้ระบบหลักพัง
+    }
+  }
+}
+
 /* ---------- Session (ใช้ในขั้น Login) ---------- */
 class SessionRepository extends SheetRepository {
   constructor() { super(CONFIG.SHEETS.SESSIONS); }

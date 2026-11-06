@@ -10,10 +10,20 @@ const CONFIG = {
   APP_NAME: 'ระบบขอรับบริการ สทส.',
   EMAIL_DOMAIN: '@tistr.or.th',
   TIMEZONE: 'Asia/Bangkok',
-  DEBUG: true,                    // ช่วงพัฒนา = true / ก่อนเปิดใช้จริงเปลี่ยนเป็น false
+  // DEBUG : แสดงรายละเอียด error บนหน้าเว็บ
+  //  เปิด = ตั้ง Script Property ชื่อ DEBUG ค่า 1 / ใช้งานจริง = ลบ property นั้นทิ้ง (ไม่ต้องแก้โค้ด)
   SUPPORT_PHONE: '9356',          // เบอร์ติดต่อ สทส. ที่แสดงให้ User เห็น
   SESSION_DAYS_USER: 30,          // Soft login ของ User อยู่ได้กี่วัน
   SESSION_DAYS_STAFF: 1,          // เจ้าหน้าที่ต้องเข้าระบบใหม่ทุกวัน
+
+  USER_LOGIN: {
+    MAX_FAILS: 5,                 // ใส่เบอร์ผิดต่ออีเมลได้กี่ครั้ง
+    LOCK_MINUTES: 15
+  },
+
+  JOB_LIMIT_PER_HOUR: 5,          // User หนึ่งคนแจ้งงานได้กี่เรื่องต่อชั่วโมง (กันสแปม)
+  MAIL_RESERVE: 10,               // เหลือโควตาอีเมลต่ำกว่านี้ จะงดส่ง OTP (กันโควตาหมดทั้งระบบ)
+  STAFF_2FA_ROLES: ['admin'],     // role ที่ต้องยืนยัน OTP ทุกครั้งที่เข้าระบบ
 
   STAFF_LOGIN: {
     MAX_FAILS: 5,                 // ใส่รหัสผิดติดกันได้กี่ครั้ง
@@ -35,15 +45,18 @@ const CONFIG = {
     LENGTH: 6,
     EXPIRE_MINUTES: 10,           // รหัสใช้ได้กี่นาที
     MAX_ATTEMPTS: 5,              // กรอกผิดได้กี่ครั้งต่อรหัส
-    RESEND_SECONDS: 60            // ขอรหัสใหม่ได้ทุกกี่วินาที
+    RESEND_SECONDS: 60,           // ขอรหัสใหม่ได้ทุกกี่วินาที
+    MAX_PER_DAY: 8                // ขอรหัสได้กี่ครั้งต่อวัน ต่อบัญชี
   },
+
+  BACKUP_KEEP_DAYS: 30,           // เก็บไฟล์สำรองชีตย้อนหลังกี่วัน
 
   SHEETS: {
     USERS: {
       name: 'users',
       // คอลัมน์ใหม่ต่อท้ายเสมอ (ห้ามแทรกกลาง ไม่งั้นข้อมูลเดิมจะเลื่อนคอลัมน์)
       headers: ['user_id', 'email', 'phone4', 'full_name', 'position', 'division', 'room',
-                'created_at', 'updated_at', 'division_id']
+                'created_at', 'updated_at', 'division_id', 'email_verified']
     },
     STAFF: {
       name: 'staff',
@@ -84,6 +97,10 @@ const CONFIG = {
       name: 'otps',
       headers: ['otp_id', 'email', 'purpose', 'new_phone4', 'otp_hash', 'otp_salt',
                 'expires_at', 'attempts', 'used', 'created_at']
+    },
+    SECURITY_LOG: {
+      name: 'security_log',
+      headers: ['log_id', 'event', 'actor_type', 'actor_key', 'detail', 'created_at']
     },
     SESSIONS: {
       name: 'sessions',

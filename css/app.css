@@ -227,3 +227,6 @@ body.app-bare .main-footer { margin-left: 0 !important; }
 
 .jb-box { border: 1px solid var(--app-line); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
 .jb-box-danger { border-color: #f1c6c1; background: #fffafa; }
+
+/* ข้อความแจ้งการเก็บข้อมูล */
+.login-privacy { color: var(--app-muted); font-size: .78rem; text-align: center; margin: 1rem 0 0; line-height: 1.5; }

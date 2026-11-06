@@ -125,6 +125,26 @@ const Util = {
     return folder;
   },
 
+  isDebug: function () {
+    return PropertiesService.getScriptProperties().getProperty('DEBUG') === '1';
+  },
+
+  // ตัวนับชั่วคราว (เช่น ใส่รหัสผิดกี่ครั้ง) หายเองเมื่อครบเวลา
+  counter: {
+    get: function (key) {
+      return Number(CacheService.getScriptCache().get(key) || 0);
+    },
+    add: function (key, seconds) {
+      const cache = CacheService.getScriptCache();
+      const n = Number(cache.get(key) || 0) + 1;
+      cache.put(key, String(n), seconds);
+      return n;
+    },
+    clear: function (key) {
+      CacheService.getScriptCache().remove(key);
+    }
+  },
+
   // กันข้อความจากผู้ใช้กลายเป็น HTML ในอีเมล
   esc: function (text) {
     return String(text === undefined || text === null ? '' : text)

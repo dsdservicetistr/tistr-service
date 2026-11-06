@@ -34,7 +34,10 @@
         <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn_login">
           <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ
         </button>
-        <p class="text-center small mt-3 mb-0">
+        <p class="login-privacy">
+          ระบบเก็บอีเมล เบอร์โทรภายใน ชื่อ และหน่วยงานของท่าน เพื่อใช้ติดต่อและให้บริการด้านเทคโนโลยีสารสนเทศเท่านั้น
+        </p>
+        <p class="text-center small mt-2 mb-0">
           <a href="index.html?MM=staff_login" class="text-muted"><i class="fas fa-user-shield"></i> สำหรับเจ้าหน้าที่</a>
         </p>
       </form>
@@ -60,6 +63,9 @@
       <div id="panel_otp" class="mismatch d-none" role="dialog" aria-labelledby="otp_title">
         <div class="mismatch-icon otp-icon"><i class="fas fa-key"></i></div>
         <h3 id="otp_title" class="mismatch-title">กรอกรหัส OTP</h3>
+        <p class="mismatch-text small" id="otp_intro" style="display:none">
+          เพื่อความปลอดภัย ระบบต้องยืนยันว่าท่านเป็นเจ้าของอีเมลนี้ ทำครั้งเดียว ครั้งต่อไปเข้าระบบได้ทันที
+        </p>
         <p class="mismatch-text">
           ส่งรหัส 6 หลักไปที่ <strong class="js-mm-email"></strong> แล้ว
           รหัสใช้ได้ <span id="otp_minutes">10</span> นาที
@@ -89,7 +95,7 @@
 </div>
 
 <script>
-var login_state = { email: '', phone4: '' };
+var login_state = { email: '', phone4: '', mode: 'phone' };   // mode: phone = เปลี่ยนเบอร์, verify = ยืนยันอีเมลครั้งแรก
 
 // พิมพ์ได้เฉพาะตัวเลข
 $('#login_phone').on('input', function () {
@@ -154,7 +160,14 @@ async function fn_login() {
   try {
     const d = await api.call('user_login', login_state);
 
+    if (d.result === 'verify_email') {
+      login_state.mode = 'verify';
+      fn_open_otp_panel(d, 'ยืนยันอีเมลครั้งแรก', 'ยืนยันและเข้าสู่ระบบ');
+      return;
+    }
+
     if (d.result === 'phone_mismatch') {
+      login_state.mode = 'phone';
       $('.js-mm-email').text(d.email);
       $('.js-mm-phone').text(login_state.phone4);
       $('.js-support-phone').text(d.support_phone);
@@ -188,12 +201,13 @@ async function fn_request_otp() {
   $('#mismatch_error, #otp_error').addClass('d-none');
 
   try {
-    const d = await api.call('user_request_otp', login_state);
-    $('.js-support-phone').text(d.support_phone);
-    $('#otp_minutes').text(d.expire_minutes);
-    fn_show_panel('panel_otp');
-    $('#otp_code').val('').trigger('focus');
-    fn_start_resend_timer(d.resend_seconds);
+    if (login_state.mode === 'verify') {
+      const d = await api.call('user_login', { email: login_state.email, phone4: login_state.phone4 });
+      fn_open_otp_panel(d, 'ยืนยันอีเมลครั้งแรก', 'ยืนยันและเข้าสู่ระบบ');
+    } else {
+      const d = await api.call('user_request_otp', login_state);
+      fn_open_otp_panel(d, 'กรอกรหัส OTP', 'ยืนยันและเข้าสู่ระบบ');
+    }
   } catch (err) {
     const target = $('#panel_otp').hasClass('d-none') ? '#mismatch_error' : '#otp_error';
     $(target).text(err.message).removeClass('d-none');
@@ -202,6 +216,17 @@ async function fn_request_otp() {
   } finally {
     $('#btn_request_otp').html('<i class="fas fa-envelope"></i> เปลี่ยนเบอร์ (ส่งรหัส OTP ไปที่อีเมล)');
   }
+}
+
+function fn_open_otp_panel(d, title, btnText) {
+  $('.js-mm-email').text(d.email || login_state.email);
+  $('.js-support-phone').text(d.support_phone);
+  $('#otp_minutes').text(d.expire_minutes);
+  $('#otp_title').text(title);
+  $('#otp_intro').toggle(login_state.mode === 'verify');
+  fn_show_panel('panel_otp');
+  $('#otp_code').val('').trigger('focus');
+  fn_start_resend_timer(d.resend_seconds);
 }
 
 function fn_start_resend_timer(seconds) {
@@ -236,7 +261,8 @@ async function fn_verify_otp() {
   const $b = $('#btn_verify_otp');
   $b.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...');
   try {
-    const d = await api.call('user_verify_otp', { email: login_state.email, otp: code });
+    const flg = login_state.mode === 'verify' ? 'user_verify_email' : 'user_verify_otp';
+    const d = await api.call(flg, { email: login_state.email, otp: code });
     clearInterval(resend_timer);
     fn_login_done(d);
   } catch (err) {

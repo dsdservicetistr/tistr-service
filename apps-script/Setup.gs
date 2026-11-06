@@ -144,3 +144,55 @@ function migrateStep3() {
 
   console.log('ปรับข้อมูลหมวดบริการเรียบร้อย');
 }
+
+/* ============================================================
+ * สำรองข้อมูลอัตโนมัติ
+ *  - installBackupTrigger() รันด้วยมือ 1 ครั้ง : ตั้งให้ backupDaily ทำงานทุกวันตี 2
+ *  - ไฟล์สำรองอยู่ในโฟลเดอร์ tistr-service-backup เก็บย้อนหลัง CONFIG.BACKUP_KEEP_DAYS วัน
+ *    (ไฟล์เก่าย้ายไปถังขยะของ Drive ไม่ได้ลบถาวร)
+ * ============================================================ */
+function backupDaily() {
+  const props = PropertiesService.getScriptProperties();
+  let folderId = props.getProperty('BACKUP_FOLDER_ID');
+  const folder = folderId ? DriveApp.getFolderById(folderId) : DriveApp.createFolder('tistr-service-backup');
+  if (!folderId) props.setProperty('BACKUP_FOLDER_ID', folder.getId());
+
+  const name = 'service_db_backup_' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd_HHmm');
+  DriveApp.getFileById(props.getProperty('SHEET_ID')).makeCopy(name, folder);
+
+  const limit = Date.now() - CONFIG.BACKUP_KEEP_DAYS * 24 * 3600 * 1000;
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    if (f.getDateCreated().getTime() < limit) f.setTrashed(true);
+  }
+  console.log('สำรองข้อมูลแล้ว: ' + name);
+}
+
+function installBackupTrigger() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'backupDaily')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('backupDaily').timeBased().everyDays(1).atHour(2).create();
+  backupDaily();                                    // สำรองครั้งแรกทันที
+  console.log('ตั้งเวลาสำรองข้อมูลทุกวันตี 2 เรียบร้อย');
+}
+
+/* ============================================================
+ * ตรวจความพร้อมก่อนเปิดใช้จริง : รันแล้วอ่านผลใน Execution log
+ * ============================================================ */
+function securityChecklist() {
+  const props = PropertiesService.getScriptProperties();
+  const staff = new StaffRepository().findActive();
+  const checks = [
+    ['ปิด DEBUG แล้ว (ไม่มี Script Property DEBUG)', props.getProperty('DEBUG') !== '1'],
+    ['ตั้ง SHEET_ID แล้ว', !!props.getProperty('SHEET_ID')],
+    ['ตั้งเวลาสำรองข้อมูลแล้ว', ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'backupDaily')],
+    ['มี Admin อย่างน้อย 1 คน', staff.some(s => s.role === 'admin')],
+    ['เจ้าหน้าที่ทุกคนมีอีเมล', staff.every(s => !!s.email)],
+    ['เจ้าหน้าที่ทุกคนตั้งรหัสผ่านแล้ว', staff.every(s => !!s.pass_hash)],
+    ['โควตาอีเมลวันนี้ยังเหลือ (' + MailApp.getRemainingDailyQuota() + ')', MailApp.getRemainingDailyQuota() > CONFIG.MAIL_RESERVE]
+  ];
+  checks.forEach(c => console.log((c[1] ? '✅ ' : '❌ ') + c[0]));
+  console.log('อย่าลืมตรวจด้วยมือ: บัญชี Google ของระบบเปิด 2-Step Verification แล้ว / ชีตไม่ได้แชร์ให้ใคร / โฟลเดอร์รูปแนบไม่ได้แชร์ให้ใคร');
+}
