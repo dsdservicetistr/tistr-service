@@ -50,7 +50,7 @@ class OtpService {
       SecurityLogRepository.write('otp_issue', 'otp', key, purpose);
       const mail = buildMail(code);
       try {
-        MailApp.sendEmail({ to: sendTo, subject: mail.subject, htmlBody: mail.htmlBody });
+        Notifier.send(sendTo, mail.subject.replace(/^\[[^\]]*\]\s*/, ''), mail.htmlBody, 'high');
       } catch (e) {
         console.error('ส่ง OTP ไม่สำเร็จ: ' + e);
         throw new AppError('ส่งอีเมลไม่สำเร็จ กรุณาติดต่อ สทส. โทร ' + CONFIG.SUPPORT_PHONE, 'MAIL_FAILED');
@@ -102,7 +102,6 @@ class OtpService {
       'รหัส OTP ของคุณคือ<br>' +
       '<div style="font-size:28px;font-weight:bold;letter-spacing:6px;margin:8px 0 12px">' + code + '</div>' +
       'รหัสนี้ใช้ได้ภายใน ' + CONFIG.OTP.EXPIRE_MINUTES + ' นาที ห้ามบอกรหัสนี้กับผู้อื่น<br><br>' +
-      'ถ้าคุณไม่ได้เป็นผู้ขอ ไม่ต้องทำอะไร และสามารถแจ้งเจ้าหน้าที่ สทส. ได้ที่เบอร์ ' + CONFIG.SUPPORT_PHONE + '<br><br>' +
-      '<em>อีเมลฉบับนี้ส่งจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ</em>';
+      'ถ้าคุณไม่ได้เป็นผู้ขอ ไม่ต้องทำอะไร และสามารถแจ้งเจ้าหน้าที่ สทส. ได้ที่เบอร์ ' + CONFIG.SUPPORT_PHONE;
   }
 }

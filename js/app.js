@@ -17,6 +17,7 @@ class App {
       'login':       { page: 'pages/user_login.html',  title: 'เข้าสู่ระบบ',          auth: false,   bare: true },
       'staff_login': { page: 'pages/staff_login.html', title: 'เข้าสู่ระบบเจ้าหน้าที่', auth: false,   bare: true },
       '1':           { page: 'pages/user_home.html',   title: 'ขอรับบริการ',          auth: 'user' },
+      'my':          { page: 'pages/user_jobs.html',   title: 'ติดตามสถานะงาน',       auth: 'user' },
       'jobs':        { page: 'pages/staff_jobs.html',  title: 'รายการงาน',            auth: 'staff' },
       '99':          { page: 'pages/system_test.html', title: 'ทดสอบระบบ',            auth: 'admin' }
     };

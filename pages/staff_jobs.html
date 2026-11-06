@@ -1,6 +1,7 @@
 <!-- แท็บกรองสถานะ -->
 <ul class="nav nav-pills jb-tabs mb-3" id="job_tabs" role="tablist">
-  <li class="nav-item"><a class="nav-link" href="#" data-filter="new">งานใหม่ <span class="badge badge-light js-count-new">0</span></a></li>
+  <li class="nav-item"><a class="nav-link" href="#" data-filter="mine">งานของฉัน <span class="badge badge-light js-count-mine">0</span></a></li>
+  <li class="nav-item js-admin-only"><a class="nav-link" href="#" data-filter="new">งานใหม่ <span class="badge badge-light js-count-new">0</span></a></li>
   <li class="nav-item"><a class="nav-link active" href="#" data-filter="open">กำลังดำเนินการ <span class="badge badge-light js-count-open">0</span></a></li>
   <li class="nav-item"><a class="nav-link" href="#" data-filter="closed">ปิด / ยกเลิก <span class="badge badge-light js-count-closed">0</span></a></li>
   <li class="nav-item"><a class="nav-link" href="#" data-filter="all">ทั้งหมด <span class="badge badge-light js-count-all">0</span></a></li>
@@ -49,7 +50,10 @@
 </div>
 
 <script>
-var jb = { filter: 'open', table: null, detail: null, timer: null };
+var jb = { filter: StaffSession.isAdmin() ? 'open' : 'mine', table: null, detail: null, timer: null };
+$('.js-admin-only').toggle(StaffSession.isAdmin());
+$('#job_tabs .nav-link').removeClass('active');
+$('#job_tabs [data-filter="' + jb.filter + '"]').addClass('active');
 
 function esc(t) {
   return $('<div>').text(t === undefined || t === null ? '' : String(t)).html();
@@ -168,6 +172,9 @@ function fn_render_detail() {
   }
 
   if (j.assigned_name) html += '<div class="jb-label">ผู้รับผิดชอบ</div><div class="mb-3">' + esc(j.assigned_name) + '</div>';
+  if (j.appointment_at) html += '<div class="jb-label">นัดหมาย</div><div class="mb-3"><i class="far fa-calendar-check text-warning"></i> ' + esc(Fmt.dateTime(j.appointment_at)) + '</div>';
+  if (j.action_taken) html += '<div class="jb-label">ผลการดำเนินการ</div><div class="jb-detail mb-3">' +
+    (j.cause ? '<strong>สาเหตุ:</strong> ' + esc(j.cause) + '\n' : '') + '<strong>ดำเนินการ:</strong> ' + esc(j.action_taken) + '</div>';
   if (j.cancel_reason) html += '<div class="alert alert-danger py-2">ยกเลิกเนื่องจาก ' + esc(j.cancel_reason) + '</div>';
 
   // ประวัติ
@@ -179,8 +186,11 @@ function fn_render_detail() {
   });
   html += '</ul>';
 
+  const opOpen = d.is_mine && ['2', '3', '4'].indexOf(String(j.status_number)) > -1;
+  if (opOpen) html += fn_operator_panel_html();
   if (d.can_manage) html += fn_admin_panel_html();
   $('#job_body').html(html);
+  if (opOpen) fn_init_operator_panel();
   if (d.can_manage) fn_init_admin_panel();
 }
 
@@ -201,6 +211,107 @@ async function fn_load_file(btn) {
   } catch (err) {
     $b.prop('disabled', false).html('<i class="fas fa-exclamation-triangle"></i><span>ลองใหม่</span>');
   }
+}
+
+/* ---------- ส่วนของผู้รับผิดชอบงาน ---------- */
+function fn_operator_panel_html() {
+  const j = jb.detail.job;
+  const st = String(j.status_number);
+  let h = '<hr><h6 class="font-weight-bold mb-3"><i class="fas fa-tools"></i> งานของฉัน</h6>';
+
+  if (st === '2') {
+    h += '<div class="jb-box jb-box-main"><p class="mb-2">Admin มอบหมายงานนี้ให้คุณ กดรับงานเพื่อแจ้งผู้แจ้งว่ามีผู้รับผิดชอบแล้ว</p>' +
+      '<button type="button" class="btn btn-success btn-lg btn-block" id="btn_accept" onclick="fn_op(\'btn_accept\', \'staff_accept\', {}, \'รับงานเรียบร้อย\')">' +
+      '<i class="fas fa-hand-paper"></i> รับงาน</button></div>';
+  } else {
+    h += '<div class="jb-box"><label class="jb-label" for="o_at">นัดหมายเข้าดำเนินการ</label>' +
+      '<input type="datetime-local" id="o_at" class="form-control form-control-sm">' +
+      '<input type="text" id="o_at_note" class="form-control form-control-sm mt-2" maxlength="500" placeholder="ข้อความถึงผู้แจ้ง (ถ้ามี)">' +
+      '<button type="button" class="btn btn-warning btn-sm mt-2" id="btn_appoint" onclick="fn_appoint()"><i class="far fa-calendar-check"></i> บันทึกนัดหมาย (แจ้งผู้แจ้งทางอีเมล)</button></div>';
+
+    h += '<div class="jb-box"><label class="jb-label" for="o_msg">ส่งข้อความถึงผู้แจ้ง</label>' +
+      '<textarea id="o_msg" class="form-control form-control-sm" rows="2" maxlength="500"></textarea>' +
+      '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btn_msg" onclick="fn_message()"><i class="far fa-comment-dots"></i> ส่งข้อความ</button></div>';
+
+    h += '<div class="jb-box jb-box-main"><span class="jb-label">ปิดงาน</span>' +
+      (j.is_routine ? '<div class="custom-control custom-checkbox mb-2"><input type="checkbox" class="custom-control-input" id="o_routine" checked>' +
+        '<label class="custom-control-label" for="o_routine">งานขอใช้ประจำ (บันทึกว่า "ดำเนินการแล้ว")</label></div>' : '') +
+      '<div id="o_close_fields"><textarea id="o_cause" class="form-control form-control-sm" rows="2" maxlength="1000" placeholder="สาเหตุ"></textarea>' +
+      '<textarea id="o_action" class="form-control form-control-sm mt-2" rows="2" maxlength="1000" placeholder="สิ่งที่ดำเนินการ"></textarea></div>' +
+      '<button type="button" class="btn btn-success btn-block mt-2" id="btn_close" onclick="fn_close_job()"><i class="fas fa-check-double"></i> ปิดงาน</button></div>';
+  }
+
+  h += '<details class="jb-more"><summary>ส่งคืน Admin / ยกเลิกงาน</summary>' +
+    '<div class="jb-box mt-2"><input type="text" id="o_return" class="form-control form-control-sm" maxlength="500" placeholder="เหตุผลที่ส่งคืน เช่น ไม่ใช่งานที่รับผิดชอบ">' +
+    '<button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="btn_return" onclick="fn_return()"><i class="fas fa-undo"></i> ส่งคืน Admin</button></div>' +
+    '<div class="jb-box jb-box-danger"><input type="text" id="o_cancel" class="form-control form-control-sm" maxlength="500" placeholder="เหตุผลการยกเลิก (ผู้แจ้งจะเห็นข้อความนี้)">' +
+    '<button type="button" class="btn btn-outline-danger btn-sm mt-2" id="btn_op_cancel" onclick="fn_op_cancel()"><i class="fas fa-ban"></i> ยกเลิกงาน</button></div></details>' +
+    '<div class="alert alert-danger d-none mt-2" id="op_error"></div>';
+  return h;
+}
+
+function fn_init_operator_panel() {
+  const j = jb.detail.job;
+  if (j.appointment_at) $('#o_at').val(String(j.appointment_at).slice(0, 16).replace(' ', 'T'));
+  const toggle = () => $('#o_close_fields').toggle(!$('#o_routine').is(':checked'));
+  $('#o_routine').on('change', toggle);
+  toggle();
+}
+
+async function fn_op(btnId, flg, extra, okText, errBox) {
+  const $b = $('#' + btnId), old = $b.html();
+  const $err = $('#' + (errBox || 'op_error'));
+  $b.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...');
+  $err.addClass('d-none');
+  try {
+    await api.call(flg, Object.assign({ job_id: jb.detail.job.job_id }, extra));
+    await fn_open_job(jb.detail.job.job_id);
+    fn_load_jobs();
+    $('#job_body').prepend($('<div class="alert alert-success py-2">').text(okText));
+  } catch (err) {
+    $err.text(err.message).removeClass('d-none');
+    $b.prop('disabled', false).html(old);
+  }
+}
+
+function fn_op_err(msg, focusId) {
+  $('#op_error').text(msg).removeClass('d-none');
+  if (focusId) $('#' + focusId).trigger('focus');
+}
+
+function fn_appoint() {
+  const at = $('#o_at').val();
+  if (!at) return fn_op_err('กรุณาเลือกวันและเวลานัดหมาย', 'o_at');
+  fn_op('btn_appoint', 'staff_appoint', { appointment_at: at, note: $('#o_at_note').val().trim() }, 'บันทึกนัดหมายและแจ้งผู้แจ้งแล้ว');
+}
+
+function fn_message() {
+  const msg = $('#o_msg').val().trim();
+  if (!msg) return fn_op_err('กรุณาพิมพ์ข้อความ', 'o_msg');
+  fn_op('btn_msg', 'staff_message', { message: msg }, 'ส่งข้อความแล้ว');
+}
+
+function fn_close_job() {
+  const routine = $('#o_routine').is(':checked');
+  const cause = $('#o_cause').val().trim(), action = $('#o_action').val().trim();
+  if (!routine && !cause) return fn_op_err('กรุณากรอกสาเหตุ', 'o_cause');
+  if (!routine && !action) return fn_op_err('กรุณากรอกสิ่งที่ดำเนินการ', 'o_action');
+  if (!confirm('ยืนยันปิดงาน ' + jb.detail.job.job_number + ' ?')) return;
+  fn_op('btn_close', 'staff_close', { routine: routine, cause: cause, action_taken: action }, 'ปิดงานเรียบร้อย ระบบแจ้งผู้แจ้งให้ประเมินแล้ว');
+}
+
+function fn_return() {
+  const reason = $('#o_return').val().trim();
+  if (!reason) return fn_op_err('กรุณากรอกเหตุผลที่ส่งคืน', 'o_return');
+  if (!confirm('ส่งงานนี้คืนให้ Admin ?')) return;
+  fn_op('btn_return', 'staff_return', { reason: reason }, 'ส่งคืน Admin แล้ว');
+}
+
+function fn_op_cancel() {
+  const reason = $('#o_cancel').val().trim();
+  if (!reason) return fn_op_err('กรุณากรอกเหตุผลการยกเลิก', 'o_cancel');
+  if (!confirm('ยืนยันยกเลิกใบงาน ' + jb.detail.job.job_number + ' ?')) return;
+  fn_op('btn_op_cancel', 'staff_cancel', { reason: reason }, 'ยกเลิกงานเรียบร้อย');
 }
 
 /* ---------- ส่วนจัดการของ Admin ---------- */

@@ -109,23 +109,74 @@ class JobController {
     };
   }
 
+  // flg = user_my_jobs : งานของฉัน (หน้าติดตามสถานะ)
+  static myJobs(data, req) {
+    const user = Auth.requireUser(req);
+    const lk   = new Lookup();
+    const logs = new JobLogRepository().findAll();
+    const jobs = new JobRepository().findByUser(user.user_id).slice(0, 30);
+
+    // เหตุการณ์ที่ User เห็นได้ (ไม่แสดงหมายเหตุภายในของเจ้าหน้าที่)
+    const visible = {
+      create: () => 'แจ้งเรื่องแล้ว',
+      assign: () => 'ส่งต่อให้เจ้าหน้าที่ผู้รับผิดชอบ',
+      accept: () => 'เจ้าหน้าที่รับงานแล้ว',
+      appoint: n => 'นัดหมาย ' + OperatorController.thaiDate(String(n).split(' | ')[0]) +
+        (String(n).indexOf(' | ') > -1 ? ' : ' + String(n).split(' | ').slice(1).join(' | ') : ''),
+      message: n => n,
+      close: n => 'ดำเนินการเสร็จแล้ว : ' + n,
+      cancel: n => n,
+      return: () => 'อยู่ระหว่างตรวจสอบผู้รับผิดชอบใหม่'
+    };
+
+    return {
+      jobs: jobs.map(j => {
+        const st = lk.statuses[String(j.status_number)] || {};
+        const s  = lk.staff[String(j.assigned_staff_id)];
+        const timeline = logs
+          .filter(l => String(l.job_id) === String(j.job_id) && visible[l.action])
+          .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+          .map(l => ({
+            action: l.action,
+            text: visible[l.action](l.note),
+            by: l.actor_type === 'staff' ? lk.staffName(l.actor_id) : '',
+            created_at: l.created_at
+          }));
+        return {
+          job_id: j.job_id,
+          job_number: j.job_number,
+          created_at: j.created_at,
+          updated_at: j.updated_at,
+          category: lk.catName(j.cat_id, j.sub_id),
+          detail: j.detail,
+          location: j.location,
+          status_number: j.status_number,
+          status_text: st.status_user_thai || '',
+          status_color: st.status_color || 'secondary',
+          staff: s && ['2', '3', '4', '5', '6'].indexOf(String(j.status_number)) > -1
+            ? StaffAuthController.publicStaff(s) : null,
+          appointment_at: j.appointment_at,
+          action_taken: j.action_taken,
+          cancel_by: j.cancel_by,
+          cancel_reason: j.cancel_reason,
+          eval_status: j.eval_status,
+          timeline: timeline
+        };
+      })
+    };
+  }
+
   // แจ้ง Admin ทุกคนว่ามีงานใหม่
   static _notifyAdmins(job, cat, sub, user) {
     if (!CONFIG.NOTIFY_ADMIN_NEW_JOB) return;
     const to = new StaffRepository().findAdmins().map(a => a.email).filter(Boolean);
     if (!to.length) return;
-    try {
-      MailApp.sendEmail({
-        to: to.join(','),
-        subject: '[' + CONFIG.APP_NAME + '] งานใหม่ ' + job.job_number + ' : ' + cat.cat_name,
-        htmlBody: 'มีงานใหม่เลขที่ <b>' + job.job_number + '</b><br>' +
-          'หมวด: ' + Util.esc(cat.cat_name + (sub ? ' > ' + sub.sub_name : '')) + '<br>' +
-          'ผู้แจ้ง: ' + Util.esc(user.full_name) + ' (' + Util.esc(user.division) + ') โทร ' + Util.esc(user.phone4) + '<br>' +
-          'สถานที่: ' + Util.esc(job.location) + '<br>รายละเอียด: ' + Util.esc(String(job.detail).slice(0, 300))
-      });
-    } catch (e) {
-      console.error('ส่งเมลแจ้ง Admin ไม่สำเร็จ: ' + e);
-    }
+    Notifier.send(to, 'งานใหม่ ' + job.job_number + ' : ' + cat.cat_name,
+      'มีงานใหม่เลขที่ <b>' + job.job_number + '</b><br>' +
+      'หมวด: ' + Util.esc(cat.cat_name + (sub ? ' > ' + sub.sub_name : '')) + '<br>' +
+      'ผู้แจ้ง: ' + Util.esc(user.full_name) + ' (' + Util.esc(user.division) + ') โทร ' + Util.esc(user.phone4) + '<br>' +
+      'สถานที่: ' + Util.esc(job.location) + '<br>รายละเอียด: ' + Util.esc(String(job.detail).slice(0, 300)) +
+      Notifier.link('jobs', 'เปิดรายการงาน'));
   }
 
   /* ---------- ไฟล์แนบ ---------- */

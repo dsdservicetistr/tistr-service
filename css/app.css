@@ -230,3 +230,39 @@ body.app-bare .main-footer { margin-left: 0 !important; }
 
 /* ข้อความแจ้งการเก็บข้อมูล */
 .login-privacy { color: var(--app-muted); font-size: .78rem; text-align: center; margin: 1rem 0 0; line-height: 1.5; }
+
+/* =========================================================
+ * ขั้นที่ 5 : ติดตามสถานะงาน (my-*) และส่วนของผู้รับผิดชอบ
+ * ========================================================= */
+.my-head { font-size: 1rem; font-weight: 600; color: var(--app-muted); margin: 1rem 0 .6rem; }
+.my-card { border-radius: 14px; border: 1px solid var(--app-line); box-shadow: none; max-width: 860px; }
+.my-no { font-size: 1.1rem; }
+.my-flash { animation: my-flash 1.6s ease-out 2; }
+@keyframes my-flash { 0%, 100% { box-shadow: none; } 40% { box-shadow: 0 0 0 4px rgba(47, 111, 181, .35); } }
+
+.my-steps { display: flex; list-style: none; padding: 0; margin: .5rem 0 1rem; counter-reset: s; }
+.my-steps li { flex: 1; text-align: center; font-size: .78rem; color: var(--app-muted); position: relative; }
+.my-steps li span { display: block; width: 14px; height: 14px; border-radius: 50%; margin: 0 auto 4px;
+  background: #dfe5ec; position: relative; z-index: 1; }
+.my-steps li::before { content: ''; position: absolute; top: 6px; left: -50%; width: 100%; height: 2px; background: #dfe5ec; }
+.my-steps li:first-child::before { display: none; }
+.my-steps li.done span, .my-steps li.done::before, .my-steps li.now::before { background: #28a745; }
+.my-steps li.now span { background: var(--app-primary); box-shadow: 0 0 0 4px rgba(47, 111, 181, .2); }
+.my-steps li.now { color: var(--app-ink); font-weight: 600; }
+
+.my-staff { display: flex; align-items: center; gap: 12px; background: #f6f8fb; border-radius: 10px; padding: 10px 12px; margin-bottom: .6rem; }
+.my-staff-pic { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.my-staff-ph { background: #e3edf8; color: var(--app-primary); display: flex; align-items: center; justify-content: center; }
+.my-appoint { background: #fff8e6; border-radius: 10px; padding: 8px 12px; margin-bottom: .6rem; color: #8a5a12; }
+
+.my-timeline summary { cursor: pointer; color: var(--app-primary); font-size: .9rem; }
+.my-timeline ul { list-style: none; padding-left: 0; margin: .5rem 0 0; }
+.my-timeline li { padding: 4px 0 4px 12px; border-left: 2px solid var(--app-line); font-size: .9rem; }
+.my-timeline li.my-t-message, .my-timeline li.my-t-appoint { border-left-color: #f0ad4e; }
+.my-timeline li.my-t-close { border-left-color: #28a745; }
+.my-timeline li.my-t-cancel { border-left-color: #dc3545; }
+
+.jb-box-main { border-color: #bcd3ee; background: #f7fbff; }
+.jb-more summary { cursor: pointer; color: var(--app-muted); font-size: .9rem; margin-top: .5rem; }
+
+@media (prefers-reduced-motion: reduce) { .my-flash { animation: none; } }

@@ -218,16 +218,11 @@ class AuthController {
   // แจ้งยืนยันหลังเปลี่ยนเบอร์สำเร็จ (ส่งไม่ผ่านก็ไม่ทำให้ล็อกอินล้ม)
   static _notifyPhoneChanged(user, oldPhone, newPhone) {
     try {
-      MailApp.sendEmail({
-        to: user.email,
-        subject: '[' + CONFIG.APP_NAME + '] เปลี่ยนเบอร์โทรภายในเรียบร้อย',
-        htmlBody:
-          'เบอร์โทรภายในที่ใช้เข้าระบบของอีเมล ' + user.email +
-          ' ถูกเปลี่ยนจาก <b>' + oldPhone + '</b> เป็น <b>' + newPhone + '</b>' +
-          ' เมื่อ ' + Util.now() + ' (ยืนยันด้วยรหัส OTP แล้ว)<br><br>' +
-          'ถ้าคุณไม่ได้เป็นผู้เปลี่ยน กรุณาแจ้งเจ้าหน้าที่ สทส. โทร ' + CONFIG.SUPPORT_PHONE + '<br><br>' +
-          '<em>อีเมลฉบับนี้ส่งจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ</em>'
-      });
+      Notifier.send(user.email, 'เปลี่ยนเบอร์โทรภายในเรียบร้อย',
+        'เบอร์โทรภายในที่ใช้เข้าระบบของอีเมล ' + Util.esc(user.email) +
+        ' ถูกเปลี่ยนจาก <b>' + Util.esc(oldPhone) + '</b> เป็น <b>' + Util.esc(newPhone) + '</b>' +
+        ' เมื่อ ' + Util.now() + ' (ยืนยันด้วยรหัส OTP แล้ว)<br><br>' +
+        'ถ้าคุณไม่ได้เป็นผู้เปลี่ยน กรุณาแจ้งเจ้าหน้าที่ สทส. ทันที', 'high');
     } catch (e) {
       console.error('ส่งเมลแจ้งเปลี่ยนเบอร์ไม่สำเร็จ: ' + e);
     }

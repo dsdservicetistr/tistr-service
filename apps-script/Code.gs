@@ -91,6 +91,28 @@ class Router {
       case 'admin_cancel':
         return AdminController.cancel(data, req);
 
+      // ===== ขั้นที่ 5 : ผู้รับผิดชอบงาน / ติดตามสถานะ =====
+      case 'staff_accept':
+        return OperatorController.accept(data, req);
+
+      case 'staff_return':
+        return OperatorController.returnToAdmin(data, req);
+
+      case 'staff_appoint':
+        return OperatorController.appoint(data, req);
+
+      case 'staff_message':
+        return OperatorController.message(data, req);
+
+      case 'staff_close':
+        return OperatorController.close(data, req);
+
+      case 'staff_cancel':
+        return OperatorController.cancel(data, req);
+
+      case 'user_my_jobs':
+        return JobController.myJobs(data, req);
+
       case 'user_me':
         return AuthController.userMe(req);
 

@@ -1,0 +1,140 @@
+<div class="d-flex align-items-center mb-3">
+  <p class="text-muted mb-0">สถานะอัปเดตอัตโนมัติ <span id="my_last" class="small"></span></p>
+  <a href="index.html?MM=1" class="btn btn-primary btn-sm ml-auto"><i class="fas fa-plus"></i> แจ้งเรื่องใหม่</a>
+</div>
+
+<div class="alert alert-danger d-none" id="my_error"></div>
+<div id="my_list"><div class="text-muted"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</div></div>
+
+<script>
+var my = { last: {}, first: true };
+
+function esc(t) { return $('<div>').text(t === undefined || t === null ? '' : String(t)).html(); }
+
+const STEPS = [
+  { n: ['1'],      label: 'แจ้งเรื่อง' },
+  { n: ['2'],      label: 'ส่งต่อแล้ว' },
+  { n: ['3', '4'], label: 'กำลังดำเนินการ' },
+  { n: ['5', '6'], label: 'เสร็จสิ้น' }
+];
+
+function fn_steps(st) {
+  if (st === '7') return '';
+  const idx = STEPS.findIndex(s => s.n.indexOf(st) > -1);
+  return '<ol class="my-steps">' + STEPS.map((s, i) =>
+    '<li class="' + (i < idx ? 'done' : i === idx ? 'now' : '') + '"><span></span>' + s.label + '</li>').join('') + '</ol>';
+}
+
+function fn_staff_card(j) {
+  if (!j.staff) return '';
+  const s = j.staff;
+  // รูปโหลดไม่ได้ -> ซ่อนรูป แสดงไอคอนแทน
+  const pic = (s.photo
+    ? '<img src="' + esc(s.photo) + '" alt="" class="my-staff-pic" referrerpolicy="no-referrer" ' +
+      'onerror="this.classList.add(\'d-none\'); this.nextElementSibling.classList.remove(\'d-none\')">' : '') +
+    '<div class="my-staff-pic my-staff-ph' + (s.photo ? ' d-none' : '') + '"><i class="fas fa-user"></i></div>';
+  const lead = j.status_number === '2'
+    ? 'Admin ส่งต่องานนี้ให้'
+    : (['5', '6'].indexOf(j.status_number) > -1 ? 'ดำเนินการโดย' : 'ผู้รับผิดชอบ (รับงานแล้ว)');
+  const phone = s.phone_desk
+    ? '<a href="tel:' + esc(s.phone_desk) + '" class="btn btn-sm btn-outline-primary"><i class="fas fa-phone"></i> ' + esc(s.phone_desk) + '</a>' : '';
+  return '<div class="my-staff">' + pic + '<div class="flex-grow-1"><div class="small text-muted">' + lead + '</div>' +
+    '<div class="font-weight-bold">' + esc(s.full_name) + '</div>' +
+    (j.status_number === '2' ? '<div class="small">ติดต่อประสานงานได้ที่เบอร์โต๊ะ ' + esc(s.phone_desk) + '</div>' : '') +
+    '</div>' + phone + '</div>';
+}
+
+function fn_job_card(j) {
+  const st = String(j.status_number);
+  let h = '<div class="card my-card" data-job="' + esc(j.job_id) + '"><div class="card-body">';
+  h += '<div class="d-flex flex-wrap align-items-center mb-1">' +
+    '<strong class="my-no">' + esc(j.job_number) + '</strong>' +
+    '<span class="badge badge-' + esc(j.status_color) + ' ml-2">' + esc(j.status_text) + '</span>' +
+    '<span class="text-muted small ml-auto">' + esc(Fmt.dateTime(j.created_at)) + '</span></div>';
+  h += '<div class="mb-2">' + esc(j.category) + '</div>';
+  h += fn_steps(st);
+
+  if (j.appointment_at && ['4'].indexOf(st) > -1) {
+    h += '<div class="my-appoint"><i class="far fa-calendar-check"></i> นัดหมาย <strong>' + esc(Fmt.dateTime(j.appointment_at)) + '</strong></div>';
+  }
+  h += fn_staff_card(j);
+
+  if (st === '7') {
+    const by = j.cancel_by === 'admin' ? 'Admin' : 'ผู้ปฏิบัติงาน';
+    h += '<div class="alert alert-danger py-2 mb-2">ยกเลิกโดย ' + by + ' เนื่องจาก ' + esc(j.cancel_reason) + '</div>';
+  }
+  if (st === '5') {
+    h += '<div class="alert alert-success py-2 mb-2"><i class="fas fa-check-circle"></i> ดำเนินการเสร็จแล้ว' +
+      (j.action_taken ? ' : ' + esc(j.action_taken) : '') +
+      '<div class="small mt-1">แบบประเมินการให้บริการจะเปิดให้ใช้งานเร็ว ๆ นี้</div></div>';
+  }
+
+  // ไทม์ไลน์ (ข้อความล่าสุดอยู่บน)
+  if (j.timeline.length) {
+    h += '<details class="my-timeline"' + (['2', '3', '4'].indexOf(st) > -1 ? ' open' : '') + '><summary>ความคืบหน้า (' + j.timeline.length + ')</summary><ul>';
+    j.timeline.slice().reverse().forEach(t => {
+      h += '<li class="my-t-' + esc(t.action) + '"><span class="text-muted small">' + esc(Fmt.dateTime(t.created_at)) + '</span> ' +
+        esc(t.text) + (t.by && t.action === 'message' ? ' <span class="text-muted small">— ' + esc(t.by) + '</span>' : '') + '</li>';
+    });
+    h += '</ul></details>';
+  }
+  h += '<div class="small text-muted mt-2">สถานที่: ' + esc(j.location) + '</div>';
+  h += '</div></div>';
+  return h;
+}
+
+async function fn_load_my() {
+  try {
+    const d = await api.call('user_my_jobs');
+    if (!d.jobs.length) {
+      $('#my_list').html('<div class="card"><div class="card-body text-center text-muted py-5">' +
+        '<i class="far fa-clipboard fa-2x mb-2"></i><div>ยังไม่มีเรื่องที่แจ้งไว้</div></div></div>');
+    } else {
+      // งานที่ยังไม่จบขึ้นก่อน
+      const open = d.jobs.filter(j => ['1', '2', '3', '4'].indexOf(String(j.status_number)) > -1);
+      const done = d.jobs.filter(j => open.indexOf(j) === -1);
+      $('#my_list').html(
+        (open.length ? '<h3 class="my-head">กำลังดำเนินการ</h3>' + open.map(fn_job_card).join('') : '') +
+        (done.length ? '<h3 class="my-head">ที่ผ่านมา</h3>' + done.map(fn_job_card).join('') : ''));
+    }
+    fn_notify_changes(d.jobs);
+    $('#my_error').addClass('d-none');
+    $('#my_last').text('(ล่าสุด ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ')');
+  } catch (err) {
+    $('#my_error').text(err.message).removeClass('d-none');
+  }
+}
+
+// แจ้งเตือนเมื่อสถานะเปลี่ยนระหว่างเปิดหน้านี้ค้างไว้
+function fn_notify_changes(jobs) {
+  jobs.forEach(j => {
+    const key = j.status_number + '|' + j.timeline.length;
+    const prev = my.last[j.job_id];
+    if (!my.first && prev && prev !== key) {
+      $(document).Toasts('create', {
+        class: 'bg-' + (j.status_color === 'secondary' ? 'info' : j.status_color),
+        title: 'ใบงาน ' + j.job_number,
+        body: $('<div>').text(j.status_text).html(),
+        autohide: true, delay: 8000
+      });
+      $('.my-card[data-job="' + j.job_id + '"]').addClass('my-flash');
+      document.title = '● ' + APP_CONFIG.APP_NAME;
+    }
+    my.last[j.job_id] = key;
+  });
+  my.first = false;
+}
+
+$(window).on('focus', () => { document.title = APP_CONFIG.APP_NAME; });
+// กลับมาที่แท็บนี้ -> โหลดสถานะล่าสุดทันที
+$(document).off('visibilitychange.my').on('visibilitychange.my', function () {
+  if (document.visibilityState === 'visible' && document.getElementById('my_list')) fn_load_my();
+});
+
+fn_load_my();
+clearInterval(window.myJobsTimer);
+window.myJobsTimer = setInterval(function () {
+  if (!document.getElementById('my_list')) { clearInterval(window.myJobsTimer); return; }
+  if (document.visibilityState === 'visible') fn_load_my();
+}, 30000);
+</script>

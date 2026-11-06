@@ -45,9 +45,10 @@ class AdminController {
       jobs = jobs.filter(j => String(j.assigned_staff_id) === String(me.staff_id));
     }
 
-    const counts = { new: 0, open: 0, closed: 0, all: jobs.length };
+    const counts = { new: 0, mine: 0, open: 0, closed: 0, all: jobs.length };
     jobs.forEach(j => {
       const st = String(j.status_number);
+      if (String(j.assigned_staff_id) === String(me.staff_id) && AdminController.OPEN.indexOf(st) > -1) counts.mine++;
       if (st === '1') counts.new++;
       if (AdminController.OPEN.indexOf(st) > -1) counts.open++;
       if (AdminController.CLOSED.indexOf(st) > -1) counts.closed++;
@@ -57,6 +58,7 @@ class AdminController {
     jobs = jobs.filter(j => {
       const st = String(j.status_number);
       if (filter === 'new') return st === '1';
+      if (filter === 'mine') return String(j.assigned_staff_id) === String(me.staff_id) && AdminController.OPEN.indexOf(st) > -1;
       if (filter === 'open') return AdminController.OPEN.indexOf(st) > -1;
       if (filter === 'closed') return AdminController.CLOSED.indexOf(st) > -1;
       return true;
@@ -132,8 +134,13 @@ class AdminController {
         assigned_staff_id: job.assigned_staff_id,
         assigned_name: lk.staffName(job.assigned_staff_id),
         cancel_reason: job.cancel_reason,
+        appointment_at: job.appointment_at,
+        cause: job.cause,
+        action_taken: job.action_taken,
+        is_routine: !!(lk.subs[String(job.sub_id)] && String(lk.subs[String(job.sub_id)].is_routine) === '1'),
         files: files.map(f => ({ id: f.id, name: f.name }))
       },
+      is_mine: String(job.assigned_staff_id) === String(me.staff_id),
       user: {
         full_name: u.full_name, position: u.position, email: u.email, phone4: u.phone4,
         division: d ? DivisionRepository.label(d) : (u.division || ''), room: u.room
@@ -250,17 +257,10 @@ class AdminController {
   // แจ้ง Operator ทางอีเมลเมื่อได้รับมอบหมาย (ไม่ส่งถ้ามอบให้ตัวเอง)
   static _notifyAssigned(job, staff, me, note) {
     if (!staff.email || String(staff.staff_id) === String(me.staff_id)) return;
-    try {
-      MailApp.sendEmail({
-        to: staff.email,
-        subject: '[' + CONFIG.APP_NAME + '] มอบหมายงาน ' + job.job_number,
-        htmlBody: 'คุณได้รับมอบหมายใบงาน <b>' + job.job_number + '</b> จาก ' + Util.esc(me.full_name) + '<br>' +
-          'สถานที่: ' + Util.esc(job.location) + '<br>รายละเอียด: ' + Util.esc(String(job.detail).slice(0, 300)) +
-          (note ? '<br>หมายเหตุ: ' + Util.esc(note) : '') +
-          '<br><br>กรุณาเข้าระบบเพื่อกดรับงาน'
-      });
-    } catch (e) {
-      console.error('ส่งเมลมอบหมายงานไม่สำเร็จ: ' + e);
-    }
+    Notifier.send(staff.email, 'มอบหมายงาน ' + job.job_number,
+      'คุณได้รับมอบหมายใบงาน <b>' + job.job_number + '</b> จาก ' + Util.esc(me.full_name) + '<br>' +
+      'สถานที่: ' + Util.esc(job.location) + '<br>รายละเอียด: ' + Util.esc(String(job.detail).slice(0, 300)) +
+      (note ? '<br>หมายเหตุ: ' + Util.esc(note) : '') +
+      '<br><br>กรุณาเข้าระบบเพื่อกดรับงาน' + Notifier.link('jobs', 'เปิดรายการงาน'));
   }
 }
